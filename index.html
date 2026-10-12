@@ -1,0 +1,3323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COSMO PLUS</title>
+<style>
+:root{--g:#0f0;--d:#060;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:#050505;color:var(--g);
+font-family:Consolas,monospace;overflow:hidden;
+height:100vh;display:flex;flex-direction:column;}
+header{height:52px;display:flex;align-items:center;
+justify-content:space-between;padding:0 8px;
+border-bottom:1px solid var(--d);background:#001100;
+flex-shrink:0;z-index:50;}
+.hleft{display:flex;align-items:center;gap:6px;}
+.logo{font-weight:bold;font-size:13px;
+text-shadow:0 0 5px var(--g);}
+.menu{background:transparent;border:1px solid var(--d);
+color:var(--g);font-size:16px;line-height:1;
+padding:6px 10px;cursor:pointer;font-family:inherit;}
+.tabs{display:flex;gap:8px;}
+.btn{min-width:86px;padding:12px 6px;background:transparent;
+border:1px solid var(--d);color:var(--d);
+font-family:inherit;font-size:13px;cursor:pointer;}
+.btn.active{background:var(--g);color:#000;
+border-color:var(--g);box-shadow:0 0 8px var(--g);}
+#menu-panel{position:fixed;top:56px;left:8px;z-index:200;
+display:none;background:#000;border:1px solid var(--g);
+padding:8px;max-width:70vw;}
+#menu-panel.show{display:block;}
+.mi{display:block;width:100%;text-align:left;
+background:transparent;border:none;
+border-bottom:1px dashed #030;color:var(--g);
+font-family:inherit;font-size:13px;padding:8px 6px;
+cursor:pointer;}
+.mi:last-child{border-bottom:none;}
+#info-panel{position:fixed;top:56px;left:8px;right:8px;
+bottom:8px;z-index:300;display:none;background:#000;
+border:1px solid var(--g);padding:12px;
+overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#info-panel.show{display:block;}
+#info-close{margin-top:10px;background:transparent;
+border:1px solid var(--g);color:var(--g);
+font-family:inherit;padding:8px 14px;cursor:pointer;}
+main{flex:1;position:relative;overflow:hidden;}
+.view{position:absolute;top:0;left:0;width:100%;
+height:100%;display:none;flex-direction:column;}
+.view.active{display:flex;}
+#out{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+touch-action:pan-y;padding:10px;font-size:13px;
+line-height:1.4;word-break:break-word;}
+#in-wrap{display:flex;align-items:center;padding:8px 10px;
+border-top:1px solid var(--d);background:#000;flex-shrink:0;}
+#prompt{color:var(--g);margin-right:8px;font-weight:bold;}
+#cmd{flex:1;background:transparent;border:none;outline:none;
+color:#fff;font-family:inherit;font-size:16px;}
+#b-send{background:transparent;border:1px solid var(--d);
+color:var(--g);font-size:16px;padding:6px 12px;
+cursor:pointer;font-family:inherit;}
+canvas{width:100%;height:100%;display:block;
+touch-action:none;}
+#body-tabs{position:absolute;top:8px;left:8px;z-index:6;
+display:flex;gap:6px;}
+.bbtn{padding:8px 12px;background:rgba(0,0,0,.7);
+border:1px solid var(--d);color:var(--d);
+font-family:inherit;font-size:12px;cursor:pointer;}
+.bbtn.active{background:var(--g);color:#000;
+border-color:var(--g);}
+#legend{position:absolute;bottom:8px;left:8px;
+border:1px solid var(--d);background:rgba(0,0,0,.8);
+padding:6px;font-size:10px;pointer-events:none;}
+#tag{position:absolute;display:none;background:#000;
+border:1px solid var(--g);padding:3px 6px;font-size:11px;
+color:var(--g);z-index:5;}
+#tag-dot{background:transparent;border:none;color:var(--g);
+font-size:14px;padding:0 4px;cursor:pointer;
+font-family:inherit;}
+.l-info{color:#888;}
+.l-ok{color:#0f0;}
+.l-err{color:#f33;}
+.l-data{color:#0cf;}
+.l-cmd{color:#fff;}
+</style>
+</head>
+<body>
+<header>
+<div class="hleft">
+<div class="logo">SYS://COSMO_PLUS</div>
+<button class="menu" id="menu-btn">⋮</button>
+</div>
+<div class="tabs">
+<button class="btn active" id="b-term">TERMINAL</button>
+<button class="btn" id="b-globe">GLOBE</button>
+</div>
+</header>
+<div id="menu-panel">
+<button class="mi" data-c="about">ABOUT</button>
+<button class="mi" data-c="tracklast">TRACK: LAST TAP</button>
+<button class="mi" data-c="trackall">TRACK: ALL</button>
+<button class="mi" data-c="tracktop">TRACK: TOP-5</button>
+<button class="mi" data-c="untrack">TRACK: OFF</button>
+<button class="mi" data-c="filter com">FILTER: COMMS</button>
+<button class="mi" data-c="filter nav">FILTER: NAV</button>
+<button class="mi" data-c="filter eo">FILTER: EARTH OBS</button>
+<button class="mi" data-c="filter off">FILTER: OFF</button>
+<button class="mi" data-c="stream on">STREAM ON</button>
+<button class="mi" data-c="stream off">STREAM OFF</button>
+<button class="mi" data-c="clear">CLEAR</button>
+</div>
+<div id="info-panel">
+<div id="info-body"></div>
+<button id="info-close">CLOSE ✕</button>
+</div>
+<!-- P1 END -->
+<main>
+<div id="v-term" class="view active">
+<div id="out"></div>
+<div id="in-wrap">
+<span id="prompt">&gt;</span>
+<input type="text" id="cmd" enterkeyhint="send"
+autocomplete="off" autocapitalize="off" spellcheck="false"
+placeholder="type 'help'...">
+<button id="b-send">➤</button>
+</div>
+</div>
+<div id="v-globe" class="view">
+<canvas id="c2d"></canvas>
+<div id="body-tabs">
+<button class="bbtn active" data-b="E">EARTH</button>
+<button class="bbtn" data-b="M">MOON</button>
+<button class="bbtn" data-b="A">MARS</button>
+</div>
+<div id="tag"><span id="tag-name"></span>
+<button id="tag-dot">⋮</button></div>
+<div id="legend">
+<div style="color:#0f0">● Stations/Science</div>
+<div style="color:#08f">● Earth Observation</div>
+<div style="color:#0ff">● Comms constellations</div>
+<div style="color:#fa0">● Weather GEO</div>
+<div style="color:#ff0">● Navigation</div>
+<div style="color:#a0f">● Deep space</div>
+<div style="color:#fff">● Surface rovers/landers</div>
+<div>Drag=rotate Pinch=zoom Tap=info</div>
+</div>
+</div>
+</main>
+<script>
+window.onerror=function(m,s,l){
+var o=document.getElementById('out');
+if(o){
+var d=document.createElement('div');
+d.style.color='#f33';
+d.textContent='JS ERROR: '+m+' line '+l;
+o.appendChild(d);
+}
+return false;
+};
+function $(id){ return document.getElementById(id); }
+var out=$('out'), inp=$('cmd');
+var atBottom=true;
+out.addEventListener('scroll',function(){
+atBottom=(out.scrollTop+out.clientHeight)>=
+(out.scrollHeight-24);
+});
+function log(t,c){
+var d=document.createElement('div');
+d.className='l-'+(c||'info');
+d.textContent=t;
+out.appendChild(d);
+if(atBottom) out.scrollTop=out.scrollHeight;
+while(out.children.length>200){
+out.removeChild(out.firstChild);
+}
+}
+function fit(){
+var h=window.innerHeight;
+try{
+if(window.visualViewport){
+h=window.visualViewport.height;
+}
+}catch(e){}
+document.body.style.height=h+'px';
+window.scrollTo(0,0);
+}
+if(window.visualViewport){
+visualViewport.addEventListener('resize',fit);
+}
+window.addEventListener('resize',fit);
+fit();
+function exec(raw){
+if(typeof run==='function') run(raw);
+else log('ENGINE MISSING: '+raw,'err');
+}
+$('b-send').addEventListener('click',function(){
+exec(inp.value); inp.value=''; inp.focus();
+});
+inp.addEventListener('keydown',function(e){
+if(e.key==='Enter'){ exec(inp.value); inp.value=''; }
+});
+$('in-wrap').addEventListener('click',function(){
+inp.focus();
+});
+function switchTab(t){
+var vt=$('v-term'), vg=$('v-globe');
+var bt=$('b-term'), bg=$('b-globe');
+if(t==='term'){
+vt.classList.add('active');
+vg.classList.remove('active');
+bt.classList.add('active');
+bg.classList.remove('active');
+setTimeout(fit,50);
+}else{
+if(typeof initGlobe!=='function'){
+log('GLOBE BLOCK MISSING','err'); return;
+}
+if(!initGlobe()){
+log('Globe unavailable','err'); return;
+}
+vg.classList.add('active');
+vt.classList.remove('active');
+bg.classList.add('active');
+bt.classList.remove('active');
+setTimeout(fit,50);
+}
+}
+$('b-term').addEventListener('click',function(){
+switchTab('term');
+});
+$('b-globe').addEventListener('click',function(){
+switchTab('globe');
+});
+$('menu-btn').addEventListener('click',function(e){
+e.stopPropagation();
+$('menu-panel').classList.toggle('show');
+});
+document.addEventListener('click',function(e){
+var id=e.target.id;
+if(id!=='menu-btn'&&id!=='menu-panel'){
+$('menu-panel').classList.remove('show');
+}
+});
+var mis=document.querySelectorAll('.mi');
+Array.prototype.forEach.call(mis,function(b){
+b.addEventListener('click',function(e){
+e.stopPropagation();
+$('menu-panel').classList.remove('show');
+exec(b.getAttribute('data-c'));
+});
+});
+$('info-close').addEventListener('click',function(){
+$('info-panel').classList.remove('show');
+});
+$('tag-dot').addEventListener('click',function(e){
+e.stopPropagation();
+if(typeof openInfo==='function'&&
+typeof lastTap!=='undefined'&&lastTap){
+openInfo(lastTap);
+}
+});
+log('CORE A OK','ok');
+</script>
+<!-- P2 END -->
+<script>
+var ABOUT_TEXT=
+'Создано ПСТ с ии qwen 3.8max +7 995 604 78 14';
+var F={};
+F['25544']='1998-11-20|NASA/Roscosmos/ESA|'+
+'419725 kg|109x73 m|crewed orbital lab';
+F['48274']='2021-04-29|CMSA China|'+
+'100000 kg|37 m|crewed station Tiangong';
+F['20580']='1990-04-24|NASA/ESA|'+
+'11110 kg|13.2x4.2 m|optical/UV telescope';
+F['43435']='2018-04-18|NASA|'+
+'362 kg|3.9x1.2 m|exoplanet transit survey';
+F['25994']='1999-12-18|NASA|'+
+'5190 kg|6.8 m|Earth climate observation';
+F['27424']='2002-05-04|NASA|'+
+'2934 kg|6.8 m|water cycle, oceans, clouds';
+F['39084']='2013-02-11|NASA/USGS|'+
+'2623 kg|3.0 m|land imaging 30 m/pixel';
+F['49260']='2021-09-27|NASA/USGS|'+
+'2711 kg|3.0 m|land imaging continuity';
+F['40697']='2015-06-23|ESA|'+
+'1140 kg|3.85 m|multispectral imaging 10 m';
+F['41335']='2016-02-16|ESA/EUMETSAT|'+
+'1150 kg|3.9 m|ocean color and temperature';
+F['46984']='2020-11-21|NASA/CNES/EUMETSAT|'+
+'1192 kg|3.9 m|sea level altimetry';
+F['37849']='2011-10-28|NASA/NOAA|'+
+'2294 kg|4.2 m|weather and climate';
+F['43689']='2017-11-18|NOAA|'+
+'2294 kg|4.2 m|operational weather JPSS';
+F['33591']='2009-02-06|NOAA|'+
+'1441 kg|4.2 m|weather, last POES';
+F['40069']='2014-07-08|Roscosmos|'+
+'2700 kg|10 m|weather, Earth imaging';
+F['39766']='2014-05-24|JAXA|'+
+'2120 kg|10 m|radar mapping L-band SAR';
+F['37214']='2010-04-08|ESA|'+
+'720 kg|3.9 m|ice sheets and sea ice';
+F['41240']='2016-01-17|CNES/NASA/NOAA|'+
+'550 kg|2.2 m|ocean altimetry';
+F['36411']='2009-03-07|NASA|'+
+'1052 kg|4.7 m|exoplanets, retired 2018';
+F['41866']='2016-11-19|NOAA|'+
+'5192 kg|8.1 m|geo weather imager';
+F['51850']='2022-03-01|NOAA|'+
+'5192 kg|8.1 m|geo weather imager';
+F['40267']='2014-10-07|JMA Japan|'+
+'3500 kg|8.0 m|geo weather Himawari';
+F['40732']='2015-07-15|EUMETSAT|'+
+'2000 kg|3.2 m|geo weather MSG-4';
+F['41882']='2016-12-11|CMA China|'+
+'5400 kg|5.4 m|geo weather FY-4A';
+F['44476']='2019-08-06|Intelsat|'+
+'6600 kg|7.0 m|comms and TV broadcast';
+F['VGR1']='1977-09-05|NASA|'+
+'825 kg|3.7 m dish|interstellar probe';
+F['VGR2']='1977-08-20|NASA|'+
+'825 kg|3.7 m dish|interstellar probe';
+F['JWST']='2021-12-25|NASA/ESA/CSA|'+
+'6161 kg|6.5 m mirror|IR telescope at L2';
+F['35720']='2009-06-18|NASA|'+
+'1850 kg|3.9 m|Lunar Reconnaissance Orbiter';
+F['44441']='2019-07-22|ISRO|'+
+'2379 kg|3.8 m|Chandrayaan-2 lunar orbiter';
+F['43422']='2018-05-20|CNSA China|'+
+'420 kg|1.8 m|Queqiao relay at L2 of Moon';
+F['28888']='2005-08-12|NASA|'+
+'2180 kg|6.5 m|Mars Reconnaissance Orbiter';
+F['39331']='2013-11-18|NASA|'+
+'809 kg|2.3x11 m|MAVEN mars atmosphere';
+F['27988']='2003-06-02|ESA|'+
+'1120 kg|1.5x1.8 m|Mars Express imaging';
+F['41425']='2016-03-14|ESA/Roscosmos|'+
+'3732 kg|3.2 m|ExoMars Trace Gas Orbiter';
+F['47558']='2020-07-23|CNSA China|'+
+'3175 kg|3.4 m|Tianwen-1 mars orbiter';
+F['46985']='2020-07-19|UAESA UAE|'+
+'1350 kg|2.9 m|Hope mars weather orbiter';
+F['27001']='2001-04-07|NASA|'+
+'725 kg|2.2x5.5 m|2001 Mars Odyssey';
+F['CURIOSITY']='2012-08-06|NASA|'+
+'899 kg|2.9 m|Curiosity rover, Gale crater';
+F['PERSEVERANCE']='2021-02-18|NASA|'+
+'1025 kg|3.0 m|Perseverance rover, Jezero';
+F['ZHURONG']='2021-05-14|CNSA China|'+
+'240 kg|1.85 m|Zhurong rover, Utopia';
+F['CHANG-E4']='2019-01-03|CNSA China|'+
+'1200 kg|1.5 m|Chang-e 4 far side lander';
+log('FACTS B1 OK','ok');
+</script>
+<!-- P3 END -->
+<script>
+var COLX={STA:0x00ff00,SCI:0x66ff66,EO:0x0088ff,
+WX:0xffaa00,COM:0x00ffff,NAV:0xffff00,
+DEEP:0xaa00ff,SURF:0xffffff};
+var DB=[];
+function H(s){
+var x=0;
+for(var i=0;i<s.length;i++){
+x=(x*31+s.charCodeAt(i))%100000;
+}
+return x;
+}
+function CE(id,nm,tp,ic,mm,f){
+var h=H(id);
+DB.push({id:id,name:nm,type:tp,col:COLX[tp],body:'E',
+incl:ic,mm:mm,e:0.001,raan:h%360,
+ph:(h*7)%360*Math.PI/180,fact:f});
+}
+function CONS(pre,n,tp,ic,mm,f,planes){
+for(var i=0;i<n;i++){
+var p=i%planes, slot=Math.floor(i/planes);
+DB.push({id:pre+(i+1),name:pre+'-'+(i+1),
+type:tp,col:COLX[tp],body:'E',incl:ic,mm:mm,
+e:0.0002,raan:p*360/planes,
+ph:slot*2*Math.PI/Math.ceil(n/planes),fact:f});
+}
+}
+function CD(id,nm,lat,lon,f){
+DB.push({id:id,name:nm,type:'DEEP',col:COLX.DS,
+body:'E',sp:{lat:lat,lon:lon},fact:f});
+}
+function CM(id,nm,tp,alt,inc,per,f){
+var h=H(id);
+DB.push({id:id,name:nm,type:tp,col:COLX[tp],
+body:'M',orb:{alt:alt,inc:inc,per:per,
+ph:(h*13)%360*Math.PI/180,raan:h%360},fact:f});
+}
+function CMS(id,nm,lat,lon,f){
+DB.push({id:id,name:nm,type:'SURF',col:COLX.SURF,
+body:'M',surf:{lat:lat,lon:lon},fact:f});
+}
+function CA(id,nm,tp,alt,inc,per,f){
+var h=H(id);
+DB.push({id:id,name:nm,type:tp,col:COLX[tp],
+body:'A',orb:{alt:alt,inc:inc,per:per,
+ph:(h*17)%360*Math.PI/180,raan:h%360},fact:f});
+}
+function CAS(id,nm,lat,lon,f){
+DB.push({id:id,name:nm,type:'SURF',col:COLX.SURF,
+body:'A',surf:{lat:lat,lon:lon},fact:f});
+}
+CONS('STARLINK',125,'COM',53.05,15.06,
+'SpaceX Starlink broadband internet satellite',25);
+CONS('ONEWEB',56,'COM',87.9,13.09,
+'Eutelsat OneWeb broadband constellation sat',8);
+CONS('IRIDIUM',66,'COM',86.4,14.34,
+'Iridium NEXT voice and data comms satellite',6);
+CONS('ORBCOMM',40,'COM',52.0,14.8,
+'Orbcomm M2M IoT messaging satellite',4);
+CONS('GLOBALSTAR',24,'COM',52.0,14.0,
+'Globalstar voice and data comms satellite',4);
+CONS('GPS',32,'NAV',55.0,2.0056,
+'USA GPS Block navigation satellite MEO',6);
+CONS('GLONASS',24,'NAV',64.8,2.131,
+'Roscosmos GLONASS-K navigation satellite',3);
+CONS('GALILEO',28,'NAV',56.0,1.7047,
+'ESA Galileo FOC navigation satellite',3);
+CONS('BEIDOU',30,'NAV',55.3,1.862,
+'CNSA BeiDou-3 MEO navigation satellite',3);
+CE('25544','ISS','STA',51.64,15.49);
+CE('48274','TIANGONG','STA',41.47,15.61);
+CE('20580','HUBBLE','SCI',28.47,15.09);
+CE('43435','TESS','SCI',37.0,0.07);
+CE('24673','CHANDRA','SCI',40.0,0.4);
+CE('25905','XMM-NEWTON','SCI',40.0,0.35);
+CE('27704','SPITZER','SCI',35.0,0.02);
+CE('36411','KEPLER','SCI',98.7,14.2);
+CE('25994','TERRA','EO',98.21,14.57);
+CE('27424','AQUA','EO',98.21,14.57);
+CE('39084','LANDSAT-8','EO',98.22,14.57);
+CE('49260','LANDSAT-9','EO',98.22,14.57);
+CE('39634','SENTINEL-1A','EO',98.18,14.59);
+CE('40697','SENTINEL-2A','EO',98.57,14.31);
+CE('42063','SENTINEL-2B','EO',98.57,14.31);
+CE('41335','SENTINEL-3A','EO',98.65,14.19);
+CE('43013','SENTINEL-3B','EO',98.65,14.19);
+CE('46984','SENTINEL-6','EO',66.1,12.75);
+CE('37849','SUOMI-NPP','EO',98.74,14.19);
+CE('43689','NOAA-20','EO',98.74,14.19);
+CE('33591','NOAA-19','EO',99.19,14.12);
+CE('28654','NOAA-18','EO',99.08,14.13);
+CE('40069','METEOR-M2','EO',98.79,14.21);
+CE('29499','METOP-A','EO',98.7,14.21);
+CE('38771','METOP-B','EO',98.7,14.21);
+CE('43651','METOP-C','EO',98.7,14.21);
+CE('39766','ALOS-2','EO',97.92,14.79);
+CE('37214','CRYOSAT-2','EO',92.0,14.36);
+CE('41240','JASON-3','EO',66.04,12.75);
+CE('33492','GOSAT','EO',98.0,14.78);
+CE('43010','FENGYUN-3D','EO',98.75,14.18);
+CE('39574','GPM','EO',65.0,14.9);
+CE('41866','GOES-16','WX',0.05,1.0027);
+CE('43226','GOES-17','WX',0.05,1.0027);
+CE('51850','GOES-18','WX',0.05,1.0027);
+CE('40267','HIMAWARI-8','WX',0.02,1.0027);
+CE('41836','HIMAWARI-9','WX',0.02,1.0027);
+CE('40732','METEOSAT-11','WX',0.05,1.0027);
+CE('56138','MTG-I1','WX',0.05,1.0027);
+CE('41882','FENGYUN-4A','WX',0.05,1.0027);
+CE('48816','FENGYUN-4B','WX',0.05,1.0027);
+CE('44476','INTELSAT-39','COM',0.05,1.0027);
+CD('VGR1','VOYAGER-1',10,40,
+'1977-09-05|NASA|825 kg|3.7 m dish|interstellar');
+CD('VGR2','VOYAGER-2',-10,-40,
+'1977-08-20|NASA|825 kg|3.7 m dish|interstellar');
+CD('P10','PIONEER-10',20,-60,
+'1972-03-02|NASA|258 kg|2.7 m dish|Jupiter flyby');
+CD('P11','PIONEER-11',-20,60,
+'1973-04-06|NASA|260 kg|2.7 m dish|Saturn flyby');
+CD('NH','NEW-HORIZONS',5,-80,
+'2006-01-19|NASA|478 kg|2.1 m|Pluto and Kuiper');
+CD('PARKER','PARKER-SOLAR-PROBE',30,120,
+'2018-08-12|NASA|685 kg|2.3 m|solar corona');
+CD('SOLO','SOLAR-ORBITER',-15,150,
+'2020-02-10|ESA|1800 kg|3.6 m|solar polar');
+CD('JUNO','JUNO',40,-120,
+'2011-08-05|NASA|3625 kg|3 arrays|Jupiter');
+CD('LUCY','LUCY',-30,90,
+'2021-10-16|NASA|1550 kg|7.3 m|Trojans');
+CD('PSYCHE','PSYCHE',25,-150,
+'2023-10-13|NASA|2608 kg|24 m|metal asteroid');
+CD('DART','DART',-5,170,
+'2021-11-24|NASA|610 kg|8.6 m|Dimorphos');
+CD('JWST','JAMES-WEBB',0,180,
+'2021-12-25|NASA/ESA/CSA|6161 kg|6.5 m|L2');
+CD('EUCLID','EUCLID',10,-170,
+'2023-07-01|ESA|2160 kg|1.2 m|dark energy L2');
+CM('35720','LRO','SCI',50,90,118);
+CM('44441','CHANDRAYAAN-2','SCI',100,90,120);
+CM('43422','QUEQIAO','COM',65000,20,480);
+CM('52930','CAPSTONE','SCI',3500,40,480);
+CMS('CHANG-E4','CHANG-E-4',-45.5,177.6);
+CMS('CHANG-E3','CHANG-E-3',44.1,19.5);
+CMS('YUTU-2','YUTU-2',-45.5,177.7);
+CMS('LUNA-25','LUNA-25',-60.0,40.0);
+CA('28888','MRO','SCI',300,90,112);
+CA('39331','MAVEN','SCI',400,75,270);
+CA('27988','MARS-EXPRESS','SCI',400,86,440);
+CA('39370','MOM','SCI',400,19,720);
+CA('41425','EXOMARS-TGO','SCI',400,74,120);
+CA('47558','TIANWEN-1','SCI',300,85,490);
+CA('46985','HOPE','SCI',400,25,330);
+CA('27001','MARS-ODYSSEY','SCI',400,90,118);
+CAS('CURIOSITY','CURIOSITY',-4.6,137.4);
+CAS('PERSEVERANCE','PERSEVERANCE',18.4,77.5);
+CAS('ZHURONG','ZHURONG',25.1,109.9);
+CAS('INSIGHT','INSIGHT',4.5,135.6);
+log('DATA B2 OK n='+DB.length,'ok');
+</script>
+<!-- P4 END -->
+<script>
+var state={stream:false,track:null,mode:null,filter:null};
+var lastTap=null;
+var issLive=null;
+var netState=0;
+var curBody='E';
+var BRAD={E:6371,M:1737,A:3390};
+function pollISS(){
+var u='https://api.wheretheiss.at/v1/satellites/25544';
+fetch(u).then(function(r){ return r.json(); })
+.then(function(d){
+issLive={lat:d.latitude,lon:d.longitude,
+alt:d.altitude};
+if(netState!==1){
+netState=1;
+log('NET OK: ISS live telemetry','ok');
+}
+}).catch(function(){
+if(netState!==2){
+netState=2;
+log('NET FAIL: offline model mode','info');
+}
+});
+}
+pollISS();
+setInterval(pollISS,5000);
+function orbitA(s){
+if(s.orb){ return BRAD[s.body]+s.orb.alt; }
+var T=1440/s.mm;
+var sec=T*60/(2*Math.PI);
+return Math.pow(398600.4418*sec*sec,1/3);
+}
+function modelPos(s,date){
+var T=1440/s.mm;
+var t=date.getTime()/60000;
+var u=2*Math.PI*((t%T)/T)+s.ph;
+var i=s.incl*Math.PI/180;
+var su=Math.sin(u), cu=Math.cos(u);
+var lat=Math.asin(Math.sin(i)*su)*180/Math.PI;
+var lon=Math.atan2(Math.cos(i)*su,cu)*180/Math.PI;
+lon=lon+s.raan-0.250684*t;
+lon=((lon+180)%360+360)%360-180;
+var a=orbitA(s);
+return {lat:lat,lon:lon,
+alt:a*(1+s.e*Math.cos(u))-6371};
+}
+function bodyPos(s,date){
+var o=s.orb;
+var t=date.getTime()/60000;
+var u=2*Math.PI*((t%o.per)/o.per)+o.ph;
+var i=o.inc*Math.PI/180;
+var su=Math.sin(u), cu=Math.cos(u);
+var lat=Math.asin(Math.sin(i)*su)*180/Math.PI;
+var lon=Math.atan2(Math.cos(i)*su,cu)*180/Math.PI;
+lon=lon+o.raan;
+lon=((lon+180)%360+360)%360-180;
+return {lat:lat,lon:lon,alt:o.alt};
+}
+function getPos(s,date){
+if(s.id==='25544'&&issLive) return issLive;
+if(s.sp){
+return {lat:s.sp.lat,lon:s.sp.lon,alt:0,ds:true};
+}
+if(s.surf){
+return {lat:s.surf.lat,lon:s.surf.lon,alt:0,sf:true};
+}
+if(s.orb) return bodyPos(s,date);
+return modelPos(s,date);
+}
+function orbitParams(s){
+var R=BRAD[s.body];
+var a=orbitA(s);
+var e=s.orb?0.01:(s.e||0.001);
+return {apo:a*(1+e)-R,peri:a*(1-e)-R,
+period:s.orb?s.orb.per:1440/s.mm,
+inc:s.orb?s.orb.inc:s.incl};
+}
+var WIKI_URL='https://ru.wikipedia.org/w/api.php?'+
+'action=query&generator=search&gsrlimit=1'+
+'&prop=extracts&explaintext=1&exchars=8000'+
+'&format=json&origin=*&gsrsearch=';
+function fetchWiki(name,box){
+fetch(WIKI_URL+encodeURIComponent(name))
+.then(function(r){ return r.json(); })
+.then(function(j){
+var p=j&&j.query&&j.query.pages;
+if(!p) throw 0;
+var pg=p[Object.keys(p)[0]];
+var ex=pg.extract||'';
+box.textContent=ex?ex:'WIKI: empty';
+}).catch(function(){
+box.textContent='WIKI: unavailable offline';
+});
+}
+function genFact(s){
+if(s.type==='COM') return 'Communications constellation satellite';
+if(s.type==='NAV') return 'Navigation constellation satellite MEO';
+if(s.type==='WX') return 'Geostationary weather imager';
+if(s.type==='EO') return 'Earth observation satellite';
+if(s.type==='SURF') return 'Surface lander or rover';
+if(s.type==='DEEP') return 'Deep space probe';
+return 'Orbital spacecraft';
+}
+function openInfo(s){
+lastTap=s;
+var body=document.getElementById('info-body');
+body.innerHTML='';
+function add(t,c){
+var d=document.createElement('div');
+d.className='l-'+(c||'info');
+d.textContent=t;
+body.appendChild(d);
+}
+add(s.name+' ['+s.id+'] type:'+s.type+
+' body:'+s.body,'ok');
+var f=s.fact||F[s.id]||null;
+if(f){
+var q=f.split('|');
+add('LAUNCH: '+q[0]);
+add('OPERATOR: '+q[1]);
+add('MASS: '+q[2]);
+add('SIZE: '+q[3]);
+add('MISSION: '+q[4]);
+}else{
+add('Reference: '+genFact(s),'info');
+}
+add('--- WIKIPEDIA (scroll to read) ---','info');
+var w=document.createElement('div');
+w.className='l-info';
+w.style.whiteSpace='pre-wrap';
+w.textContent='loading...';
+body.appendChild(w);
+fetchWiki(s.name.replace(/-/g,' '),w);
+document.getElementById('info-panel')
+.classList.add('show');
+}
+function satInfo(s){
+var pos=getPos(s,new Date());
+var line='INFO: '+s.name+' ['+s.id+']';
+if(s.sp) line+=' | DEEP SPACE';
+else if(s.surf) line+=' | SURFACE ASSET';
+else if(pos&&isFinite(pos.lat)){
+line+=' | LAT:'+pos.lat.toFixed(2)+
+' LON:'+pos.lon.toFixed(2)+
+' ALT:'+pos.alt.toFixed(0)+'km';
+}else line+=' | NO DATA';
+log(line,'data');
+if(!s.sp&&!s.surf){
+var op=orbitParams(s);
+log('  APO: '+op.apo.toFixed(0)+' km | PERI: '+
+op.peri.toFixed(0)+' km | PERIOD: '+
+op.period.toFixed(0)+' min | INC: '+
+op.inc.toFixed(1)+' deg','info');
+}
+}
+function pass(s){
+if(s.body!==curBody) return false;
+var f=state.filter;
+if(!f) return true;
+return s.type===f;
+}
+function visibleList(){
+return DB.filter(pass);
+}
+var TOP5=[];
+function byName(n){
+var r=null;
+DB.forEach(function(s){
+if(!r&&s.name.indexOf(n)===0) r=s;
+});
+return r;
+}
+TOP5=[byName('ISS'),byName('TIANGONG'),
+byName('HUBBLE'),byName('STARLINK-1'),
+byName('VOYAGER-1')].filter(Boolean);
+</script>
+<!-- P5 END -->
+<script>
+function run(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+var c=p[0], arg=p.slice(1).join(' ');
+log('> '+raw,'cmd');
+if(c==='help'){
+log('COMMANDS:','ok');
+log(' list | scan - visible objects');
+log(' count - total in database');
+log(' find <name/id> | info <name>');
+log(' track <name> | trackall | tracktop');
+log(' tracklast | untrack');
+log(' filter <sta|sci|eo|wx|com|nav|');
+log('   deep|surf|off>');
+log(' body <earth|moon|mars>');
+log(' stream on|off | clear | about');
+log(' globe | term');
+}
+else if(c==='about'){ log(ABOUT_TEXT,'ok'); }
+else if(c==='count'){
+log('TOTAL IN DB: '+DB.length,'ok');
+}
+else if(c==='list'||c==='scan'){
+var vl=visibleList();
+log('--- VISIBLE: '+vl.length+' ---','info');
+vl.slice(0,80).forEach(function(s){
+log('['+s.id+'] '+s.name,'data');
+});
+if(vl.length>80) log('...and '+(vl.length-80)+
+' more','info');
+}
+else if(c==='filter'){
+if(!arg||arg==='off'){
+state.filter=null;
+log('FILTER OFF','ok');
+}else{
+var map={sta:'STA',sci:'SCI',eo:'EO',wx:'WX',
+com:'COM',nav:'NAV',deep:'DEEP',surf:'SURF'};
+if(map[arg]){
+state.filter=map[arg];
+log('FILTER: '+map[arg],'ok');
+}else log('Unknown filter','err');
+}
+}
+else if(c==='body'){
+if(arg==='earth') setBody('E');
+else if(arg==='moon') setBody('M');
+else if(arg==='mars') setBody('A');
+else log('Usage: body earth|moon|mars','err');
+}
+else if(c==='find'||c==='info'){
+if(!arg){ log('Usage: '+c+' <name>','err'); return; }
+var f=null;
+DB.forEach(function(s){
+if(!f&&(s.id===arg||
+s.name.toLowerCase().indexOf(arg)!==-1)) f=s;
+});
+if(f){ lastTap=f; satInfo(f); }
+else log('NOT FOUND: '+arg,'err');
+}
+else if(c==='track'){
+var t=null;
+DB.forEach(function(s){
+if(!t&&s.name.toLowerCase().indexOf(arg)!==-1) t=s;
+});
+if(t){
+state.track=t; state.mode=null;
+log('TRACKING ONE: '+t.name,'ok');
+}else log('Unknown','err');
+}
+else if(c==='trackall'){
+state.track=null; state.mode='all';
+log('TRACKING ALL: round-robin','ok');
+}
+else if(c==='tracktop'){
+state.track=null; state.mode='top';
+var tn=TOP5.map(function(s){ return s.name; })
+.join(', ');
+log('TRACKING TOP-5: '+tn,'ok');
+}
+else if(c==='tracklast'){
+if(lastTap){
+state.track=lastTap; state.mode=null;
+log('TRACKING ONE: '+lastTap.name,'ok');
+}else log('Tap a sat first','err');
+}
+else if(c==='untrack'){
+state.track=null; state.mode=null;
+log('Tracking stopped','info');
+}
+else if(c==='stream'){
+if(arg==='on'){ state.stream=true;
+log('Stream ON','ok'); }
+else if(arg==='off'){ state.stream=false;
+log('Stream OFF','info'); }
+else log('Usage: stream on|off','err');
+}
+else if(c==='clear'){ out.innerHTML=''; }
+else if(c==='globe'){ switchTab('globe'); }
+else if(c==='term'){ switchTab('term'); }
+else if(c){ log('Unknown: '+c,'err'); }
+}
+var rr=0, rrTop=0;
+function satLine(s,now){
+var p=getPos(s,now);
+var head='['+now.toTimeString().split(' ')[0]+
+'] '+s.name+' >> ';
+if(p&&p.ds) return head+'DEEP SPACE';
+if(p&&p.sf) return head+'SURFACE';
+if(p&&isFinite(p.lat)){
+return head+'LAT:'+p.lat.toFixed(2)+
+' LON:'+p.lon.toFixed(2)+
+' ALT:'+p.alt.toFixed(0)+'km';
+}
+return head+'NO DATA';
+}
+setInterval(function(){
+var now=new Date();
+if(state.track) log(satLine(state.track,now),'data');
+else if(state.mode==='all'){
+log(satLine(DB[rr%DB.length],now),'data'); rr++;
+}
+else if(state.mode==='top'){
+log(satLine(TOP5[rrTop%TOP5.length],now),'data');
+rrTop++;
+}
+else if(state.stream){
+var r=DB[Math.floor(Math.random()*DB.length)];
+log('SIG: '+r.name+' @ '+now.toTimeString()
+.split(' ')[0],'info');
+}
+},1000);
+log('ENG C OK | DB='+DB.length,'ok');
+</script>
+<!-- P6 END -->
+<script>
+var gCv=null,gCtx=null,gReady=false;
+var yaw=0.6,pitch=0.35,zoom=1,gDrag=false;
+var GRID=[],EQ=[];
+var drawErrs=0;
+var BODY_STYLE={
+E:{line:'#005500',eq:'#00ff00',rim:'#003300'},
+M:{line:'#445544',eq:'#aaffaa',rim:'#223322'},
+A:{line:'#663311',eq:'#ff8844',rim:'#331100'}
+};
+function v3(lat,lon,r){
+var la=lat*Math.PI/180, lo=lon*Math.PI/180;
+return [r*Math.cos(la)*Math.cos(lo),
+r*Math.sin(la),
+r*Math.cos(la)*Math.sin(lo)];
+}
+function buildGrid(){
+GRID.length=0; EQ.length=0;
+var lat,lon;
+for(lat=-60;lat<=60;lat+=30){
+for(lon=-180;lon<180;lon+=6){
+GRID.push([v3(lat,lon,1),v3(lat,lon+6,1)]);
+}
+}
+for(lon=-180;lon<180;lon+=30){
+for(lat=-90;lat<90;lat+=6){
+GRID.push([v3(lat,lon,1),v3(lat+6,lon,1)]);
+}
+}
+for(lon=-180;lon<180;lon+=4){
+EQ.push([v3(0,lon,1.002),v3(0,lon+4,1.002)]);
+}
+}
+function rot(v){
+var cy=Math.cos(yaw), sy=Math.sin(yaw);
+var cp=Math.cos(pitch), sp=Math.sin(pitch);
+var x=v[0]*cy+v[2]*sy;
+var z=-v[0]*sy+v[2]*cy;
+var y2=v[1]*cp-z*sp;
+var z2=v[1]*sp+z*cp;
+return [x,y2,z2];
+}
+function proj(v){
+var w=gCv.width,h=gCv.height;
+var R=Math.min(w,h)*0.46*zoom;
+var p=rot(v);
+return {x:w/2+p[0]*R,y:h/2-p[1]*R,z:p[2]};
+}
+function gSize(){
+var vg=document.getElementById('v-globe');
+gCv.width=vg.clientWidth||window.innerWidth;
+gCv.height=vg.clientHeight||
+(window.innerHeight-52);
+}
+function drawGlobe(){
+if(gReady){
+try{
+if(!gDrag) yaw+=0.0004;
+var w=gCv.width,h=gCv.height;
+var st=BODY_STYLE[curBody];
+gCtx.fillStyle='#050505';
+gCtx.fillRect(0,0,w,h);
+var R=Math.min(w,h)*0.46*zoom;
+gCtx.strokeStyle=st.rim;
+gCtx.beginPath();
+gCtx.arc(w/2,h/2,R,0,6.2832);
+gCtx.stroke();
+gCtx.strokeStyle=st.line;
+gCtx.beginPath();
+GRID.forEach(function(seg){
+var a=proj(seg[0]), b=proj(seg[1]);
+if(a.z>0&&b.z>0){
+gCtx.moveTo(a.x,a.y);
+gCtx.lineTo(b.x,b.y);
+}
+});
+gCtx.stroke();
+gCtx.strokeStyle=st.eq;
+gCtx.beginPath();
+EQ.forEach(function(seg){
+var a=proj(seg[0]), b=proj(seg[1]);
+if(a.z>0&&b.z>0){
+gCtx.moveTo(a.x,a.y);
+gCtx.lineTo(b.x,b.y);
+}
+});
+gCtx.stroke();
+var now=new Date();
+var vl=visibleList();
+vl.forEach(function(s){
+var p=getPos(s,now);
+if(!p){ s._front=false; return; }
+var r=1+Math.min(Math.max(p.alt,0),70000)/
+BRAD[curBody];
+if(s.sp) r=1.9;
+if(s.surf) r=1.001;
+var q=proj(v3(p.lat,p.lon,r));
+s._x=q.x; s._y=q.y; s._front=q.z>0;
+if(q.z<=0) return;
+gCtx.fillStyle='#'+
+('000000'+s.col.toString(16)).slice(-6);
+gCtx.beginPath();
+gCtx.arc(q.x,q.y,2,0,6.2832);
+gCtx.fill();
+});
+}catch(e){
+if(drawErrs<3){
+drawErrs++;
+log('DRAW ERR: '+e.message,'err');
+}
+}
+}
+requestAnimationFrame(drawGlobe);
+}
+function tapGlobe(e){
+var rect=gCv.getBoundingClientRect();
+var x=e.clientX-rect.left, y=e.clientY-rect.top;
+var best=null,bd=1e9;
+DB.forEach(function(s){
+if(!s._front||s._x===undefined) return;
+var d=Math.sqrt((s._x-x)*(s._x-x)+
+(s._y-y)*(s._y-y));
+if(d<bd){ bd=d; best=s; }
+});
+if(best&&bd<30){
+lastTap=best;
+satInfo(best);
+document.getElementById('tag-name')
+.textContent=best.name;
+var tg=document.getElementById('tag');
+tg.style.left=(x+12)+'px';
+tg.style.top=(y-10)+'px';
+tg.style.display='block';
+setTimeout(function(){
+tg.style.display='none';
+},4000);
+}
+}
+function setBody(b){
+curBody=b;
+var bs=document.querySelectorAll('.bbtn');
+Array.prototype.forEach.call(bs,function(x){
+x.classList.toggle('active',
+x.getAttribute('data-b')===b);
+});
+var nm={E:'EARTH',M:'MOON',A:'MARS'};
+log('GLOBE BODY: '+nm[b],'ok');
+}
+function globeEvents(){
+var pts={},md=false,mx=0,my=0,mt=0,moved=0;
+var pinchD=0;
+gCv.addEventListener('pointerdown',function(e){
+pts[e.pointerId]={x:e.clientX,y:e.clientY};
+var n=Object.keys(pts).length;
+if(n===1){
+md=true; gDrag=true;
+mx=e.clientX; my=e.clientY;
+mt=Date.now(); moved=0;
+}else if(n===2){
+var ks=Object.keys(pts);
+pinchD=Math.hypot(
+pts[ks[0]].x-pts[ks[1]].x,
+pts[ks[0]].y-pts[ks[1]].y);
+md=false;
+}
+try{ gCv.setPointerCapture(e.pointerId); }catch(e2){}
+});
+gCv.addEventListener('pointermove',function(e){
+if(!pts[e.pointerId]) return;
+var prev=pts[e.pointerId];
+var dx=e.clientX-prev.x, dy=e.clientY-prev.y;
+pts[e.pointerId]={x:e.clientX,y:e.clientY};
+var ks=Object.keys(pts);
+if(ks.length===2){
+var d=Math.hypot(
+pts[ks[0]].x-pts[ks[1]].x,
+pts[ks[0]].y-pts[ks[1]].y);
+if(pinchD>0){
+zoom*=d/pinchD;
+zoom=Math.max(0.5,Math.min(4,zoom));
+}
+pinchD=d;
+}else if(md){
+yaw+=dx*0.005;
+pitch+=dy*0.005;
+pitch=Math.max(-1.5,Math.min(1.5,pitch));
+moved+=Math.abs(dx)+Math.abs(dy);
+}
+});
+function up(e){
+delete pts[e.pointerId];
+if(Object.keys(pts).length<2) pinchD=0;
+if(Object.keys(pts).length===0){
+gDrag=false;
+if(md&&moved<10&&Date.now()-mt<500){
+tapGlobe(e);
+}
+md=false;
+}
+}
+gCv.addEventListener('pointerup',up);
+gCv.addEventListener('pointercancel',up);
+}
+function initGlobe(){
+if(gReady) return true;
+gCv=document.getElementById('c2d');
+if(!gCv){ log('NO CANVAS','err'); return false; }
+gCtx=gCv.getContext('2d');
+buildGrid();
+gReady=true;
+gSize();
+if(!gCv.__ev){
+globeEvents();
+gCv.__ev=1;
+}
+if(!gCv.__bb){
+var bs=document.querySelectorAll('.bbtn');
+Array.prototype.forEach.call(bs,function(x){
+x.addEventListener('click',function(){
+setBody(x.getAttribute('data-b'));
+});
+});
+gCv.__bb=1;
+}
+requestAnimationFrame(drawGlobe);
+log('GLOBE READY','ok');
+return true;
+}
+window.addEventListener('resize',function(){
+if(gReady) gSize();
+});
+log('GLOBE BLOCK OK','ok');
+</script>
+<script>
+function wikiClean(name){
+return name.replace(/-\d+$/,'').replace(/-/g,' ');
+}
+function wikiFetch(q){
+log('WIKI SEARCH: '+q,'info');
+fetch(WIKI_URL+encodeURIComponent(q))
+.then(function(r){ return r.json(); })
+.then(function(j){
+var p=j&&j.query&&j.query.pages;
+if(!p) throw 0;
+var pg=p[Object.keys(p)[0]];
+log('WIKI: '+pg.title,'ok');
+var ex=(pg.extract||'').slice(0,700);
+if(ex) log(ex,'info');
+else log('WIKI: empty article','info');
+}).catch(function(){
+log('WIKI: unavailable (offline?)','err');
+});
+}
+var __oldRun=run;
+run=function(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+var q=null;
+if(p[0]==='wiki'&&p.length>1){
+q=p.slice(1).join(' ');
+}else if(p.length>1&&p[p.length-1]==='wiki'){
+q=p.slice(0,p.length-1).join(' ');
+}
+if(q){ wikiFetch(q); return; }
+__oldRun(raw);
+};
+var __oldFetchWiki=fetchWiki;
+fetchWiki=function(name,box){
+__oldFetchWiki(wikiClean(name),box);
+};
+function tapGlobe(e){
+var rect=gCv.getBoundingClientRect();
+var x=e.clientX-rect.left, y=e.clientY-rect.top;
+var best=null,bd=1e9;
+DB.forEach(function(s){
+if(s.body!==curBody) return;
+if(!s._front||s._x===undefined) return;
+var d=Math.sqrt((s._x-x)*(s._x-x)+
+(s._y-y)*(s._y-y));
+if(d<bd){ bd=d; best=s; }
+});
+if(best&&bd<30){
+lastTap=best;
+satInfo(best);
+document.getElementById('tag-name')
+.textContent=best.name;
+var tg=document.getElementById('tag');
+tg.style.left=(x+12)+'px';
+tg.style.top=(y-10)+'px';
+tg.style.display='block';
+setTimeout(function(){
+tg.style.display='none';
+},4000);
+}
+}
+log('WIKI CMD: <query> wiki | wiki <query>','info');
+log('P9 WIKI OK','ok');
+</script>
+<script>
+function aiAsk(q){
+log('AI THINKING...','info');
+var bodies={E:'Земля',M:'Луна',A:'Марс'};
+var ctx='Ты бортовой ИИ космического терминала '+
+'COSMO PLUS. Отвечай кратко, 2-4 предложения, '+
+'на русском языке, в стиле бортового компьютера. '+
+'Сейчас открыт глобус: '+bodies[curBody]+'. ';
+var url='https://text.pollinations.ai/'+
+encodeURIComponent(ctx+q);
+fetch(url).then(function(r){
+if(!r.ok) throw 0;
+return r.text();
+}).then(function(t){
+t=(t||'').trim();
+if(!t) throw 0;
+t.split(/\n+/).slice(0,6).forEach(function(line){
+if(line) log('AI: '+line,'ok');
+});
+}).catch(function(){
+log('AI OFFLINE: try wiki <query>','err');
+});
+}
+var __oldRun2=run;
+run=function(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+var c=p[0];
+if(c==='ai'){
+aiAsk(p.slice(1).join(' ')||'расскажи о себе');
+return;
+}
+if(c==='help'){
+__oldRun2(raw);
+log(' ai <question> - ask onboard AI');
+return;
+}
+__oldRun2(raw);
+};
+(function(){
+var mp=document.getElementById('menu-panel');
+if(!mp) return;
+var b=document.createElement('button');
+b.className='mi';
+b.textContent='ASK AI';
+b.addEventListener('click',function(e){
+e.stopPropagation();
+mp.classList.remove('show');
+switchTab('term');
+inp.value='ai ';
+inp.focus();
+});
+mp.appendChild(b);
+})();
+log('P10 AI OK','ok');
+</script>
+<script>
+function clean(t){
+t=(t||'').trim();
+if(t.length<2) throw 0;
+return t;
+}
+function pUrl(prompt){
+return 'https://text.pollinations.ai/'+
+encodeURIComponent(prompt)+'?model=openai';
+}
+function fDirect(prompt){
+return fetch(pUrl(prompt)).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(clean);
+}
+function fAllorigins(prompt){
+var u='https://api.allorigins.win/get?url='+
+encodeURIComponent(pUrl(prompt));
+return fetch(u).then(function(r){
+if(!r.ok) throw 0; return r.json();
+}).then(function(j){ return clean(j.contents); });
+}
+function fCodetabs(prompt){
+var u='https://api.codetabs.com/v1/proxy?quest='+
+encodeURIComponent(pUrl(prompt));
+return fetch(u).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(clean);
+}
+function fCorsproxy(prompt){
+var u='https://corsproxy.io/?url='+
+encodeURIComponent(pUrl(prompt));
+return fetch(u).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(clean);
+}
+function fPost(prompt){
+return fetch('https://text.pollinations.ai/',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({model:'openai-large',
+messages:[{role:'user',content:prompt}],
+private:true})}).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(clean);
+}
+var LOCAL_DICT=[
+['орбит','Орбита - траектория движения тела '+
+'в поле тяготения. Спутники не падают, потому '+
+'что их боковая скорость уравновешивает '+
+'притяжение: они постоянно падают мимо Земли.'],
+['лагранж','Точки Лагранжа - позиции, где '+
+'тяготение двух тел и центробежная сила '+
+'уравновешены. JWST стоит в L2 в 1.5 млн км '+
+'от Земли в направлении от Солнца.'],
+['мкс','МКС - пилотируемая станция на орбите '+
+'408 км, наклонение 51.6 градуса, скорость '+
+'7.66 км/с, 16 витков в сутки.'],
+['iss','ISS - пилотируемая станция на орбите '+
+'408 км, наклонение 51.6 градуса, скорость '+
+'7.66 км/с, 16 витков в сутки.'],
+['starlink','Starlink - созвездие SpaceX из '+
+'тысяч аппаратов на 550 км для широкополосного '+
+'интернета. Наклонение оболочек 53 градуса.'],
+['старлинк','Starlink - созвездие SpaceX из '+
+'тысяч аппаратов на 550 км для интернета.'],
+['луна','Луна - спутник Земли, средний радиус '+
+'орбиты 384400 км, период 27.3 суток.'],
+['марс','Марс - четвёртая планета, среднее '+
+'расстояние от Земли 225 млн км, сигнал идёт '+
+'от 4 до 24 минут.'],
+['войджер','Voyager-1 - самый дальний аппарат, '+
+'более 24 млрд км, покинул гелиосферу в 2012, '+
+'сигнал идёт свыше 22 часов.'],
+['voyager','Voyager-1 - самый дальний аппарат, '+
+'более 24 млрд км, покинул гелиосферу в 2012.'],
+['телескоп','Космические телескопы (Hubble, '+
+'JWST) вынесены за атмосферу: Hubble видит '+
+'УФ и оптику, JWST - инфракрасный диапазон '+
+'из точки L2.'],
+['gps','GPS - навигационное созвездие США: '+
+'24+ аппарата на 20180 км, период 12 ч, '+
+'наклонение 55 градусов.'],
+['глонасс','GLONASS - навигационное созвездие '+
+'России: 24 аппарата на 19100 км, период '+
+'11 ч 15 мин, наклонение 64.8 градуса.'],
+['пульсар','Пульсары - вращающиеся нейтронные '+
+'звёзды, дающие строго периодические '+
+'радиоимпульсы; используются как эталоны '+
+'времени в дальней навигации.']
+];
+function fLocal(q){
+var ql=q.toLowerCase();
+var hit=null;
+DB.forEach(function(s){
+if(hit) return;
+var nm=s.name.toLowerCase().split('-')[0];
+if(nm.length>3&&ql.indexOf(nm)!==-1) hit=s;
+});
+if(hit){
+var f=hit.fact||F[hit.id]||genFact(hit);
+return 'OFFLINE DB: '+hit.name+' | '+f;
+}
+for(var i=0;i<LOCAL_DICT.length;i++){
+if(ql.indexOf(LOCAL_DICT[i][0])!==-1){
+return 'OFFLINE AI: '+LOCAL_DICT[i][1];
+}
+}
+return 'OFFLINE AI: каналы недоступны. '+
+'Спроси про спутник по имени или используй '+
+'wiki <запрос> и list.';
+}
+function aiAsk(q){
+log('AI THINKING (5 routes + offline)...','info');
+var bodies={E:'Земля',M:'Луна',A:'Марс'};
+var ctx='Ты бортовой ИИ космического терминала '+
+'COSMO PLUS. Отвечай кратко, 2-4 предложения, '+
+'на русском, в стиле бортового компьютера. '+
+'Открыт глобус: '+bodies[curBody]+'. ';
+var prompt=ctx+q;
+function show(t){
+t.split(/\n+/).slice(0,6).forEach(function(line){
+if(line) log('AI: '+line,'ok');
+});
+}
+function chain(list,i){
+if(i>=list.length){
+show(fLocal(q));
+return Promise.resolve();
+}
+return aiTimeout(list[i](prompt),15000)
+.then(show)
+.catch(function(){
+log('AI: route '+(i+1)+' down','info');
+return chain(list,i+1);
+});
+}
+chain([fDirect,fAllorigins,fCodetabs,
+fCorsproxy,fPost],0);
+}
+log('P13 AI ROUTED OK','ok');
+</script>
+<script>
+function aiTm(pr,ms){
+return new Promise(function(res,rej){
+var t=setTimeout(function(){rej(new Error('t'));},ms);
+pr.then(function(v){clearTimeout(t);res(v);},
+function(e){clearTimeout(t);rej(e);});
+});
+}
+function aiClean(t){
+t=(t||'').trim();
+if(t.length<2) throw 0;
+return t;
+}
+function aiUrl(prompt){
+return 'https://text.pollinations.ai/'+
+encodeURIComponent(prompt)+'?model=openai';
+}
+function aiR1(prompt){
+return fetch(aiUrl(prompt)).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(aiClean);
+}
+function aiR2(prompt){
+return fetch('https://api.allorigins.win/get?url='+
+encodeURIComponent(aiUrl(prompt))).then(function(r){
+if(!r.ok) throw 0; return r.json();
+}).then(function(j){ return aiClean(j.contents); });
+}
+function aiR3(prompt){
+return fetch('https://api.codetabs.com/v1/proxy?quest='+
+encodeURIComponent(aiUrl(prompt))).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(aiClean);
+}
+function aiR4(prompt){
+return fetch('https://corsproxy.io/?url='+
+encodeURIComponent(aiUrl(prompt))).then(function(r){
+if(!r.ok) throw 0; return r.text();
+}).then(aiClean);
+}
+function aiLocal(q){
+try{
+var ql=q.toLowerCase();
+var hit=null;
+DB.forEach(function(s){
+if(hit) return;
+var nm=s.name.toLowerCase().split('-')[0];
+if(nm.length>3&&ql.indexOf(nm)!==-1) hit=s;
+});
+if(hit){
+var f=hit.fact||F[hit.id]||genFact(hit);
+return 'OFFLINE DB: '+hit.name+' | '+f;
+}
+if(typeof LOCAL_DICT!=='undefined'){
+for(var i=0;i<LOCAL_DICT.length;i++){
+if(ql.indexOf(LOCAL_DICT[i][0])!==-1){
+return 'OFFLINE AI: '+LOCAL_DICT[i][1];
+}
+}
+}
+return 'OFFLINE AI: внешние каналы недоступны. '+
+'Спроси про спутник по имени или используй wiki.';
+}catch(e){
+return 'OFFLINE AI: словарь повреждён.';
+}
+}
+function aiAsk(q){
+try{
+log('AI THINKING...','info');
+var bodies={E:'Земля',M:'Луна',A:'Марс'};
+var ctx='Ты бортовой ИИ космического терминала '+
+'COSMO PLUS. Отвечай кратко, на русском. '+
+'Открыт глобус: '+bodies[curBody]+'. ';
+var prompt=ctx+q;
+function show(t){
+String(t).split(/\n+/).slice(0,6)
+.forEach(function(line){
+if(line) log('AI: '+line,'ok');
+});
+}
+var routes=[aiR1,aiR2,aiR3,aiR4];
+function go(i){
+if(i>=routes.length){ show(aiLocal(q)); return; }
+aiTm(routes[i](prompt),15000).then(show)
+.catch(function(){
+log('AI: route '+(i+1)+' down','info');
+go(i+1);
+});
+}
+go(0);
+}catch(e){
+log('AI ERR: '+e.message,'err');
+log(aiLocal(q),'ok');
+}
+}
+log('P14 AI SELF OK','ok');
+</script>
+<script>
+function aiTm(pr,ms){
+return new Promise(function(res,rej){
+var t=setTimeout(function(){
+rej(new Error('timeout '+ms));
+},ms);
+pr.then(function(v){clearTimeout(t);res(v);},
+function(e){clearTimeout(t);rej(e);});
+});
+}
+function aiClean(t){
+t=(t||'').trim();
+if(t.length<2) throw 0;
+return t;
+}
+function aiRep(r){
+if(!r.ok){
+log('AI: http status '+r.status,'info');
+throw 0;
+}
+return r.text();
+}
+function aiErr(e){
+if(e&&e.message&&e.message.indexOf('timeout')!==0){
+log('AI: net error: '+e.message,'info');
+}
+throw e;
+}
+function aiUrl(prompt,model){
+return 'https://text.pollinations.ai/'+
+encodeURIComponent(prompt)+'?model='+model;
+}
+function aiR1(prompt){
+return fetch(aiUrl(prompt,'openai'))
+.then(aiRep).then(aiClean).catch(aiErr);
+}
+function aiR2(prompt){
+return fetch(aiUrl(prompt,'mistral'))
+.then(aiRep).then(aiClean).catch(aiErr);
+}
+function aiR3(prompt){
+return fetch('https://corsproxy.io/?url='+
+encodeURIComponent(aiUrl(prompt,'openai')))
+.then(aiRep).then(aiClean).catch(aiErr);
+}
+function aiR4(prompt){
+return fetch('https://api.allorigins.win/get?url='+
+encodeURIComponent(aiUrl(prompt,'openai')))
+.then(function(r){
+if(!r.ok){ log('AI: http status '+r.status,'info');
+throw 0; }
+return r.json();
+}).then(function(j){ return aiClean(j.contents); })
+.catch(aiErr);
+}
+function aiR5(prompt){
+return fetch('https://api.codetabs.com/v1/proxy?quest='+
+encodeURIComponent(aiUrl(prompt,'openai')))
+.then(aiRep).then(aiClean).catch(aiErr);
+}
+function aiLocal(q){
+try{
+var ql=q.toLowerCase();
+var hit=null;
+DB.forEach(function(s){
+if(hit) return;
+var nm=s.name.toLowerCase().split('-')[0];
+if(nm.length>3&&ql.indexOf(nm)!==-1) hit=s;
+});
+if(hit){
+var f=hit.fact||F[hit.id]||genFact(hit);
+return 'OFFLINE DB: '+hit.name+' | '+f;
+}
+if(typeof LOCAL_DICT!=='undefined'){
+for(var i=0;i<LOCAL_DICT.length;i++){
+if(ql.indexOf(LOCAL_DICT[i][0])!==-1){
+return 'OFFLINE AI: '+LOCAL_DICT[i][1];
+}
+}
+}
+return 'OFFLINE AI: внешние каналы недоступны. '+
+'Спроси про спутник по имени или используй wiki.';
+}catch(e){
+return 'OFFLINE AI: словарь повреждён.';
+}
+}
+function aiAsk(q){
+try{
+log('AI THINKING (diag mode)...','info');
+var bodies={E:'Земля',M:'Луна',A:'Марс'};
+var ctx='Ты бортовой ИИ космического терминала '+
+'COSMO PLUS. Отвечай кратко, на русском. '+
+'Открыт глобус: '+bodies[curBody]+'. ';
+var prompt=ctx+q;
+function show(t){
+String(t).split(/\n+/).slice(0,6)
+.forEach(function(line){
+if(line) log('AI: '+line,'ok');
+});
+}
+var routes=[aiR1,aiR2,aiR3,aiR4,aiR5];
+var limits=[40000,40000,30000,30000,30000];
+function go(i){
+if(i>=routes.length){ show(aiLocal(q)); return; }
+aiTm(routes[i](prompt),limits[i]).then(show)
+.catch(function(){
+log('AI: route '+(i+1)+' down','info');
+go(i+1);
+});
+}
+go(0);
+}catch(e){
+log('AI ERR: '+e.message,'err');
+log(aiLocal(q),'ok');
+}
+}
+log('P15 AI DIAG OK','ok');
+</script>
+<script>
+function aiSentences(t,n){
+var m=String(t).replace(/\s+/g,' ')
+.match(/[^.!?]+[.!?]*/g);
+return (m||[t]).slice(0,n).join(' ').trim();
+}
+function aiWiki(q){
+var u='https://ru.wikipedia.org/w/api.php?'+
+'action=query&generator=search&gsrlimit=1'+
+'&prop=extracts&explaintext=1&exchars=1500'+
+'&format=json&origin=*&gsrsearch='+
+encodeURIComponent(q);
+return fetch(u).then(function(r){
+if(!r.ok) throw 0;
+return r.json();
+}).then(function(j){
+var p=j&&j.query&&j.query.pages;
+if(!p) throw 0;
+var pg=p[Object.keys(p)[0]];
+var ex=(pg.extract||'').trim();
+if(ex.length<40) throw 0;
+return aiSentences(ex,3);
+});
+}
+function aiAsk(q){
+try{
+log('AI THINKING...','info');
+var ql=q.toLowerCase();
+var sat=null;
+DB.forEach(function(s){
+if(sat) return;
+var nm=s.name.toLowerCase().split('-')[0];
+if(nm.length>3&&ql.indexOf(nm)!==-1) sat=s;
+});
+var done=false;
+function fin(t){
+if(done) return;
+done=true;
+String(t).split(/\n+/).slice(0,6)
+.forEach(function(l){
+if(l) log('AI: '+l,'ok');
+});
+}
+if(sat){
+var pos=getPos(sat,new Date());
+var line='AI: '+sat.name+'. ';
+if(pos&&isFinite(pos.lat)&&!pos.ds&&!pos.sf){
+line+='Сейчас: LAT '+pos.lat.toFixed(1)+
+', LON '+pos.lon.toFixed(1)+', высота '+
+pos.alt.toFixed(0)+' км. ';
+}else if(sat.sp){
+line+='Дальний космос, сигнал с задержкой. ';
+}else if(sat.surf){
+line+='Работает на поверхности тела. ';
+}
+var f=sat.fact||F[sat.id];
+if(f) line+=f.split('|').slice(0,4).join(', ')+'. ';
+fin(line);
+aiWiki(q).then(function(ex){
+log('AI: '+ex,'info');
+}).catch(function(){});
+return;
+}
+aiWiki(q).then(function(ex){
+fin(ex+' (источник: Википедия)');
+}).catch(function(){
+log('AI: wiki empty, trying net...','info');
+aiTm(fetch(aiUrl(q,'openai'))
+.then(aiRep).then(aiClean),20000)
+.then(function(t){ fin(t); })
+.catch(function(){ fin(aiLocal(q)); });
+});
+}catch(e){
+log('AI ERR: '+e.message,'err');
+}
+}
+log('P16 AI WIKI-ENGINE OK','ok');
+</script>
+<script>
+CONS('STARLINK2',380,'COM',53.05,15.06,
+'SpaceX Starlink shell-2 broadband satellite',38);
+CONS('ONEWEB2',60,'COM',87.9,13.09,
+'Eutelsat OneWeb shell-2 satellite',10);
+CONS('KUIPER',60,'COM',51.9,15.5,
+'Amazon Kuiper broadband satellite',12);
+log('V3-A: DB now '+DB.length,'ok');
+function satSpeed(s,alt){
+var r=BRAD[s.body]+Math.max(alt,0);
+return Math.sqrt(398600.4418/r);
+}
+var __si=satInfo;
+satInfo=function(s){
+__si(s);
+if(!s.sp&&!s.surf){
+var p=getPos(s,new Date());
+if(p&&isFinite(p.lat)){
+log('  VEL: '+satSpeed(s,p.alt).toFixed(2)+
+' km/s','info');
+}
+}
+};
+var __sl=satLine;
+satLine=function(s,now){
+var line=__sl(s,now);
+var p=getPos(s,now);
+if(p&&isFinite(p.lat)&&!p.ds&&!p.sf){
+line+=' VEL:'+satSpeed(s,p.alt).toFixed(1);
+}
+return line;
+};
+log('V3-A SPEED OK','ok');
+</script>
+<script>
+function havDist(la1,lo1,la2,lo2){
+var R=6371, dLa=(la2-la1)*Math.PI/180,
+dLo=(lo2-lo1)*Math.PI/180,
+a=Math.sin(dLa/2)*Math.sin(dLa/2)+
+Math.cos(la1*Math.PI/180)*
+Math.cos(la2*Math.PI/180)*
+Math.sin(dLo/2)*Math.sin(dLo/2);
+return 2*R*Math.asin(Math.sqrt(a));
+}
+function showNear(la,lo){
+log('NEAR FROM: '+la.toFixed(2)+', '+lo.toFixed(2),
+'info');
+var now=new Date(), arr=[];
+DB.forEach(function(s){
+if(s.body!=='E') return;
+var p=getPos(s,now);
+if(!p||!isFinite(p.lat)||p.ds) return;
+arr.push({s:s,p:p,
+d:havDist(la,lo,p.lat,p.lon)});
+});
+arr.sort(function(a,b){ return a.d-b.d; });
+arr.slice(0,5).forEach(function(o){
+log(' '+o.s.name+' | '+o.d.toFixed(0)+
+' km | alt '+o.p.alt.toFixed(0)+
+' km | vel '+satSpeed(o.s,o.p.alt).toFixed(1)+
+' km/s','data');
+});
+}
+function askGeo(cb){
+if(!navigator.geolocation){
+log('GEO: not supported, use near lat lon','err');
+return;
+}
+navigator.geolocation.getCurrentPosition(
+function(pos){
+cb(pos.coords.latitude,pos.coords.longitude);
+},
+function(){ log('GEO: permission denied','err'); },
+{timeout:8000});
+}
+var __run3=run;
+run=function(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+if(p[0]==='near'){
+if(p.length>=3){
+showNear(parseFloat(p[1]),parseFloat(p[2]));
+}else{
+log('GEO: requesting location...','info');
+askGeo(showNear);
+}
+return;
+}
+if(p[0]==='help'){
+__run3(raw);
+log(' near [lat lon] - nearest sats');
+log(' (no args = use geolocation)');
+return;
+}
+__run3(raw);
+};
+log('V3-B NEAR OK','ok');
+</script>
+<script>
+var CONT=[
+[[60,-140],[65,-165],[71,-150],[69,-130],[68,-110],[60,-95],[57,-80],[52,-60],[47,-53],[45,-65],[40,-74],[30,-81],[25,-80],[20,-87],[15,-92],[10,-84],[8,-78],[10,-95],[15,-105],[20,-110],[25,-115],[30,-120],[35,-125],[40,-128],[48,-128],[55,-135],[60,-140]],
+[[10,-75],[12,-72],[10,-62],[8,-52],[5,-45],[0,-40],[-5,-35],[-10,-37],[-15,-40],[-20,-42],[-25,-48],[-30,-52],[-35,-57],[-40,-62],[-45,-66],[-50,-70],[-55,-68],[-52,-75],[-45,-75],[-40,-73],[-35,-72],[-30,-71],[-25,-70],[-20,-70],[-15,-75],[-10,-80],[-5,-81],[0,-80],[5,-78],[10,-75]],
+[[35,-6],[37,10],[33,20],[31,32],[25,35],[20,38],[15,42],[10,45],[5,48],[0,45],[-5,40],[-10,40],[-15,35],[-20,35],[-25,33],[-30,30],[-35,25],[-34,18],[-30,15],[-25,12],[-20,10],[-15,8],[-10,5],[-5,0],[0,-5],[5,-10],[10,-15],[15,-17],[20,-17],[25,-15],[30,-10],[35,-6]],
+[[36,-6],[40,-10],[48,-5],[55,-5],[60,-5],[65,-15],[70,-25],[75,-40],[80,-60],[83,-80],[80,-100],[75,-120],[70,-140],[66,-160],[62,-178],[58,170],[52,150],[45,135],[40,130],[35,125],[30,120],[25,115],[20,110],[15,105],[10,100],[5,98],[-8,85],[-5,80],[0,75],[5,70],[10,65],[15,60],[20,55],[25,50],[30,45],[35,40],[40,30],[38,15],[36,10],[36,-6]],
+[[-12,130],[-10,140],[-12,145],[-15,150],[-20,155],[-25,155],[-30,153],[-35,150],[-38,145],[-38,140],[-35,135],[-32,130],[-30,125],[-25,115],[-20,110],[-15,105],[-12,110],[-10,120],[-12,130]],
+[[-70,-180],[-70,-120],[-70,-60],[-70,0],[-70,60],[-70,120],[-70,180]],
+[[60,-45],[65,-55],[70,-55],[75,-60],[80,-60],[83,-40],[80,-20],[75,-20],[70,-25],[65,-35],[60,-45]]
+];
+log('V3-C MAP DATA OK','ok');
+</script>
+<script>
+function drawGlobe(){
+if(gReady){
+try{
+if(!gDrag) yaw+=0.0004;
+var w=gCv.width,h=gCv.height;
+var st=BODY_STYLE[curBody];
+gCtx.fillStyle='#050505';
+gCtx.fillRect(0,0,w,h);
+var R=Math.min(w,h)*0.46*zoom;
+gCtx.strokeStyle=st.rim;
+gCtx.beginPath();
+gCtx.arc(w/2,h/2,R,0,6.2832);
+gCtx.stroke();
+gCtx.strokeStyle=st.line;
+gCtx.beginPath();
+GRID.forEach(function(seg){
+var a=proj(seg[0]), b=proj(seg[1]);
+if(a.z>0&&b.z>0){
+gCtx.moveTo(a.x,a.y);
+gCtx.lineTo(b.x,b.y);
+}
+});
+gCtx.stroke();
+gCtx.strokeStyle=st.eq;
+gCtx.beginPath();
+EQ.forEach(function(seg){
+var a=proj(seg[0]), b=proj(seg[1]);
+if(a.z>0&&b.z>0){
+gCtx.moveTo(a.x,a.y);
+gCtx.lineTo(b.x,b.y);
+}
+});
+gCtx.stroke();
+if(curBody==='E'){
+gCtx.strokeStyle='#007700';
+gCtx.beginPath();
+CONT.forEach(function(poly){
+var prev=null;
+poly.forEach(function(pt){
+var q=proj(v3(pt[0],pt[1],1.001));
+if(prev&&prev.z>0&&q.z>0){
+gCtx.moveTo(prev.x,prev.y);
+gCtx.lineTo(q.x,q.y);
+}
+prev=q;
+});
+});
+gCtx.stroke();
+var nwC=proj(v3(50,37,1.002));
+if(nwC.z>0){
+gCtx.strokeStyle='#ffffff';
+gCtx.strokeRect(nwC.x-18,nwC.y-7,36,14);
+gCtx.fillStyle='#ffffff';
+gCtx.font='9px monospace';
+gCtx.fillText('No war',nwC.x-15,nwC.y+3);
+}
+}
+var now=new Date();
+var vl=visibleList();
+vl.forEach(function(s){
+var p=getPos(s,now);
+if(!p){ s._front=false; return; }
+var r=1+Math.min(Math.max(p.alt,0),70000)/
+BRAD[curBody];
+if(s.sp) r=1.9;
+if(s.surf) r=1.001;
+var q=proj(v3(p.lat,p.lon,r));
+s._x=q.x; s._y=q.y; s._front=q.z>0;
+if(q.z<=0) return;
+gCtx.fillStyle='#'+
+('000000'+s.col.toString(16)).slice(-6);
+gCtx.beginPath();
+gCtx.arc(q.x,q.y,2,0,6.2832);
+gCtx.fill();
+});
+}catch(e){
+if(drawErrs<3){
+drawErrs++;
+log('DRAW ERR: '+e.message,'err');
+}
+}
+}
+requestAnimationFrame(drawGlobe);
+}
+log('V3-D GLOBE MAP OK','ok');
+</script>
+<script>
+function drawGlobe(){
+if(gReady){
+try{
+if(!gDrag) yaw+=0.0004;
+var w=gCv.width,h=gCv.height;
+var st=BODY_STYLE[curBody];
+gCtx.fillStyle='#050505';
+gCtx.fillRect(0,0,w,h);
+var R=Math.min(w,h)*0.46*zoom;
+gCtx.strokeStyle=st.rim;
+gCtx.beginPath();
+gCtx.arc(w/2,h/2,R,0,6.2832);
+gCtx.stroke();
+gCtx.strokeStyle=st.line;
+gCtx.beginPath();
+GRID.forEach(function(seg){
+var a=proj(seg[0]),b=proj(seg[1]);
+if(a.z>0&&b.z>0){gCtx.moveTo(a.x,a.y);
+gCtx.lineTo(b.x,b.y);}
+});
+gCtx.stroke();
+gCtx.strokeStyle=st.eq;
+gCtx.beginPath();
+EQ.forEach(function(seg){
+var a=proj(seg[0]),b=proj(seg[1]);
+if(a.z>0&&b.z>0){gCtx.moveTo(a.x,a.y);
+gCtx.lineTo(b.x,b.y);}
+});
+gCtx.stroke();
+var now=new Date();
+var vl=visibleList();
+vl.forEach(function(s){
+var p=getPos(s,now);
+if(!p){s._front=false;return;}
+var r=1+Math.min(Math.max(p.alt,0),70000)/
+BRAD[curBody];
+if(s.sp)r=1.9;
+if(s.surf)r=1.001;
+var q=proj(v3(p.lat,p.lon,r));
+s._x=q.x;s._y=q.y;s._front=q.z>0;
+if(q.z<=0)return;
+var c=(typeof s.col==='number')?s.col:0x00ff00;
+gCtx.fillStyle='#'+
+('000000'+c.toString(16)).slice(-6);
+gCtx.beginPath();
+gCtx.arc(q.x,q.y,2,0,6.2832);
+gCtx.fill();
+});
+}catch(e){
+if(drawErrs<3){drawErrs++;
+log('DRAW ERR: '+e.message,'err');}
+}
+}
+requestAnimationFrame(drawGlobe);
+}
+log('V3-E CLEAN GLOBE OK','ok');
+</script>
+<script>
+var AI_MODE='auto';
+function netChat(prompt){
+var nodes=[
+['https://free.churchless.tech/v1/chat/completions','gpt-4o-mini'],
+['https://llm7.io/v1/chat/completions','default'],
+['https://text.pollinations.ai/','openai-large']
+];
+function tryOne(i){
+if(i>=nodes.length) return Promise.reject(0);
+var u=nodes[i][0],m=nodes[i][1];
+return aiTm(fetch(u,{method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({model:m,messages:[
+{role:'user',content:prompt}]})})
+.then(function(r){
+if(!r.ok){log('AI-NET: http '+r.status,'info');
+throw 0;}
+return r.json();
+}).then(function(j){
+var t=j&&j.choices&&j.choices[0]&&
+j.choices[0].message&&
+j.choices[0].message.content;
+if(!t) throw 0;
+return t;
+}),15000).catch(function(){
+log('AI-NET: node '+(i+1)+' down','info');
+return tryOne(i+1);
+});
+}
+return tryOne(0);
+}
+function aiAnswer(q){
+var bodies={E:'Земля',M:'Луна',A:'Марс'};
+var ctx='Ты бортовой ИИ терминала COSMO PLUS. '+
+'Отвечай кратко на русском. Открыт глобус: '+
+bodies[curBody]+'. ';
+var prompt=ctx+q;
+if(AI_MODE==='wiki'){
+return aiWiki(q).then(function(t){
+return {tag:'AI-WIKI',text:t};
+});
+}
+if(AI_MODE==='local'){
+return Promise.resolve({tag:'AI-LOCAL',
+text:aiLocal(q)});
+}
+if(AI_MODE==='net'){
+return netChat(prompt).then(function(t){
+return {tag:'AI-NET',text:t};
+});
+}
+return netChat(prompt).then(function(t){
+return {tag:'AI-NET',text:t};
+}).catch(function(){
+return aiWiki(q).then(function(t){
+return {tag:'AI-WIKI',text:t};
+});
+});
+}
+function aiAsk(q){
+log('AI THINKING ('+AI_MODE+')...','info');
+aiAnswer(q).then(function(r){
+String(r.text).split(/\n+/).slice(0,6)
+.forEach(function(l){
+if(l) log(r.tag+': '+l,'ok');
+});
+}).catch(function(){
+log('AI-LOCAL: '+aiLocal(q),'ok');
+});
+}
+var __run4=run;
+run=function(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+if(p[0]==='aisel'){
+var m=p[1];
+if(m==='wiki'||m==='net'||m==='local'||m==='auto'){
+AI_MODE=m;
+log('AI MODE: '+m,'ok');
+}else log('aisel wiki|net|local|auto','err');
+return;
+}
+if(p[0]==='help'){
+__run4(raw);
+log(' aisel wiki|net|local|auto');
+log(' wiki = answers from Wikipedia');
+log(' net = real neural net (may be blocked)');
+log(' auto = net first, then wiki');
+return;
+}
+__run4(raw);
+};
+(function(){
+var mp=document.getElementById('menu-panel');
+['wiki','net','auto'].forEach(function(m){
+var b=document.createElement('button');
+b.className='mi';
+b.textContent='AI MODE: '+m.toUpperCase();
+b.addEventListener('click',function(e){
+e.stopPropagation();
+mp.classList.remove('show');
+AI_MODE=m;
+log('AI MODE: '+m,'ok');
+});
+mp.appendChild(b);
+});
+})();
+log('V3-F AI SELECT OK','ok');
+</script>
+<script>
+(function(){
+var main=document.querySelector('main');
+var chat=document.createElement('div');
+chat.id='v-chat';
+chat.className='view';
+chat.innerHTML='<div id="chat-log"></div>'+
+'<div style="display:flex;padding:8px 10px;'+
+'border-top:1px solid #060;background:#000;">'+
+'<input id="chat-in" style="flex:1;background:'+
+'transparent;border:none;outline:none;color:#fff;'+
+'font-family:inherit;font-size:16px;" '+
+'placeholder="ask AI...">'+
+'<button id="chat-send" style="background:'+
+'transparent;border:1px solid #060;color:#0f0;'+
+'padding:6px 12px;font-family:inherit;">➤'+
+'</button></div>';
+main.appendChild(chat);
+var btn=document.createElement('button');
+btn.className='btn';
+btn.id='b-chat';
+btn.textContent='CHAT';
+document.querySelector('.tabs').appendChild(btn);
+var clog=chat.querySelector('#chat-log');
+clog.style.cssText='flex:1;overflow-y:auto;'+
+'padding:10px;font-size:13px;line-height:1.4;'+
+'word-break:break-word;'+
+'-webkit-overflow-scrolling:touch;';
+function cmsg(t,c){
+var d=document.createElement('div');
+d.className='l-'+(c||'info');
+d.textContent=t;
+clog.appendChild(d);
+clog.scrollTop=clog.scrollHeight;
+}
+function send(){
+var ci=chat.querySelector('#chat-in');
+var q=ci.value.trim();
+if(!q) return;
+ci.value='';
+cmsg('YOU: '+q,'cmd');
+cmsg('AI THINKING ('+AI_MODE+')...','info');
+aiAnswer(q).then(function(r){
+String(r.text).split(/\n+/).slice(0,8)
+.forEach(function(l){
+if(l) cmsg(r.tag+': '+l,'ok');
+});
+}).catch(function(){
+cmsg('AI-LOCAL: '+aiLocal(q),'ok');
+});
+}
+chat.querySelector('#chat-send')
+.addEventListener('click',send);
+chat.querySelector('#chat-in')
+.addEventListener('keydown',function(e){
+if(e.key==='Enter') send();
+});
+var __sw=switchTab;
+switchTab=function(t){
+if(t==='chat'){
+document.getElementById('v-term')
+.classList.remove('active');
+document.getElementById('v-globe')
+.classList.remove('active');
+chat.classList.add('active');
+document.getElementById('b-term')
+.classList.remove('active');
+document.getElementById('b-globe')
+.classList.remove('active');
+btn.classList.add('active');
+setTimeout(fit,50);
+return;
+}
+chat.classList.remove('active');
+btn.classList.remove('active');
+__sw(t);
+};
+btn.addEventListener('click',function(){
+switchTab('chat');
+});
+var __run5=run;
+run=function(raw){
+var c=raw.trim().toLowerCase().split(/\s+/)[0];
+if(c==='chat'){ switchTab('chat'); return; }
+__run5(raw);
+};
+cmsg('CHAT ONLINE. Mode: '+AI_MODE,'ok');
+})();
+log('V3-G CHAT TAB OK','ok');
+</script>
+<script>
+var MODELS={};
+function L(a,b){ return [a,b]; }
+function box(cx,cy,cz,sx,sy,sz){
+var x0=cx-sx/2,x1=cx+sx/2,y0=cy-sy/2,y1=cy+sy/2,
+z0=cz-sz/2,z1=cz+sz/2;
+var p=[[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],
+[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]];
+return [L(p[0],p[1]),L(p[1],p[2]),L(p[2],p[3]),
+L(p[3],p[0]),L(p[4],p[5]),L(p[5],p[6]),
+L(p[6],p[7]),L(p[7],p[4]),L(p[0],p[4]),
+L(p[1],p[5]),L(p[2],p[6]),L(p[3],p[7])];
+}
+MODELS.starlink={lines:box(0,0,0,0.8,0.25,0.8)
+.concat(box(1.5,0,0,2.2,0.03,0.7)),
+labels:[['body',[0,0.25,0]],['panel',[1.5,0.15,0]]]};
+MODELS.nav={lines:box(0,0,0,1,0.6,0.6)
+.concat(box(1.1,0,0,1.4,0.05,0.5))
+.concat(box(-1.1,0,0,1.4,0.05,0.5))
+.concat([[[0,0.3,0],[0,0.8,0]]]),
+labels:[['body',[0,0.4,0]],['panel',[1.1,0.2,0]],
+['antenna',[0,0.9,0]]]};
+MODELS.hubble={lines:box(0,0,0,2.2,0.9,0.9)
+.concat(box(0,1.1,0,1.8,0.05,0.5))
+.concat(box(0,-1.1,0,1.8,0.05,0.5))
+.concat([[L([1.1,0.45,0.45],[1.1,0.45,-0.45]),
+L([1.1,0.45,-0.45],[1.1,-0.45,-0.45]),
+L([1.1,-0.45,-0.45],[1.1,-0.45,0.45]),
+L([1.1,-0.45,0.45],[1.1,0.45,0.45])][0],
+L([1.1,0.45,-0.45],[1.1,-0.45,-0.45]),
+L([1.1,-0.45,-0.45],[1.1,-0.45,0.45]),
+L([1.1,-0.45,0.45],[1.1,0.45,0.45])]),
+labels:[['telescope',[0,0.6,0]],
+['solar panels',[0,1.3,0]],
+['aperture glass',[1.15,0.6,0]]]};
+MODELS.jwst={lines:[
+L([-0.6,0,0.35],[0,0,0.7]),L([0,0,0.7],[0.6,0,0.35]),
+L([0.6,0,0.35],[0.6,0,-0.35]),
+L([0.6,0,-0.35],[0,0,-0.7]),
+L([0,0,-0.7],[-0.6,0,-0.35]),
+L([-0.6,0,-0.35],[-0.6,0,0.35])]
+.concat(box(0,-0.5,0,2.6,0.05,1.4)),
+labels:[['mirror',[0,0.2,0.5]],
+['sunshield',[0,-0.6,0.8]]]};
+MODELS.iss={lines:box(0,0,0,2.4,0.5,0.5)
+.concat(box(0,0.6,0,0.6,0.6,0.6))
+.concat(box(0,-0.6,0,0.6,0.6,0.6))
+.concat(box(1.6,0,0,0.05,1.6,0.4))
+.concat(box(-1.6,0,0,0.05,1.6,0.4)),
+labels:[['modules',[0,0.5,0]],['truss',[1.2,0.3,0]],
+['panels',[1.6,0.9,0]]]};
+MODELS.rover={lines:box(0,0.3,0,1.2,0.4,0.8)
+.concat(box(-0.5,0,0.5,0.3,0.3,0.1))
+.concat(box(0,0,0.5,0.3,0.3,0.1))
+.concat(box(0.5,0,0.5,0.3,0.3,0.1))
+.concat(box(-0.5,0,-0.5,0.3,0.3,0.1))
+.concat(box(0,0,-0.5,0.3,0.3,0.1))
+.concat(box(0.5,0,-0.5,0.3,0.3,0.1))
+.concat([L([0.4,0.5,0],[0.4,0.9,0])]),
+labels:[['body',[0,0.6,0]],
+['wheels',[-0.5,0.2,0.6]],['mast',[0.4,1.0,0]]]};
+(function(){
+var ring=[],i;
+for(i=0;i<8;i++){
+var a1=i/8*6.283,a2=(i+1)/8*6.283;
+ring.push(L([0.7*Math.cos(a1),0.7*Math.sin(a1),1.2],
+[0.7*Math.cos(a2),0.7*Math.sin(a2),1.2]));
+}
+MODELS.voyager={lines:ring.concat([
+L([0,0,0],[0,0,1.2]),
+L([0,0,0],[1.4,0,0]),
+L([0,0,0],[-1.0,0.3,0])])
+.concat(box(1.6,0,0,0.4,0.4,0.4)),
+labels:[['antenna',[0,0.8,1.2]],
+['RTG reactor',[1.6,0.3,0]],
+['sensors',[-1.0,0.5,0]]]};
+})();
+MODELS.generic={lines:box(0,0,0,1,0.6,0.6)
+.concat(box(1.1,0,0,1.4,0.05,0.5))
+.concat(box(-1.1,0,0,1.4,0.05,0.5)),
+labels:[['body',[0,0.4,0]],['panel',[1.1,0.2,0]]]};
+function modelFor(s){
+var n=s.name.toUpperCase();
+if(n.indexOf('STARLINK')===0||n.indexOf('KUIPER')===0||
+n.indexOf('ONEWEB')===0) return MODELS.starlink;
+if(n.indexOf('GPS')===0||n.indexOf('GLONASS')===0||
+n.indexOf('GALILEO')===0||n.indexOf('BEIDOU')===0)
+return MODELS.nav;
+if(n.indexOf('HUBBLE')===0) return MODELS.hubble;
+if(n.indexOf('JAMES')===0||n==='JWST')
+return MODELS.jwst;
+if(n.indexOf('ISS')===0||n.indexOf('TIANGONG')===0)
+return MODELS.iss;
+if(n.indexOf('VOYAGER')===0||n.indexOf('PIONEER')===0)
+return MODELS.voyager;
+if(n.indexOf('CURIOSITY')===0||
+n.indexOf('PERSEVERANCE')===0||
+n.indexOf('ZHURONG')===0||n.indexOf('YUTU')===0||
+n.indexOf('LUNA')===0||n.indexOf('CHANG')===0||
+n.indexOf('INSIGHT')===0) return MODELS.rover;
+return MODELS.generic;
+}
+var mvCv=null,mvCtx=null,mvModel=null,
+mvYaw=0.6,mvPitch=0.4,mvDrag=false;
+function mvProj(v,w,h){
+var cy=Math.cos(mvYaw),sy=Math.sin(mvYaw),
+cp=Math.cos(mvPitch),sp=Math.sin(mvPitch);
+var x=v[0]*cy+v[2]*sy,
+z=-v[0]*sy+v[2]*cy,
+y=v[1]*cp-z*sp,
+z2=v[1]*sp+z*cp;
+var S=Math.min(w,h)*0.28;
+return {x:w/2+x*S,y:h/2-y*S,z:z2};
+}
+function mvDraw(){
+if(!mvModel||!mvCtx) return;
+var w=mvCv.width,h=mvCv.height;
+mvCtx.fillStyle='#000';
+mvCtx.fillRect(0,0,w,h);
+mvCtx.strokeStyle='#0f0';
+mvCtx.beginPath();
+mvModel.lines.forEach(function(seg){
+var a=mvProj(seg[0],w,h),b=mvProj(seg[1],w,h);
+mvCtx.moveTo(a.x,a.y);
+mvCtx.lineTo(b.x,b.y);
+});
+mvCtx.stroke();
+mvCtx.fillStyle='#0f0';
+mvCtx.font='9px monospace';
+(mvModel.labels||[]).forEach(function(lb){
+var q=mvProj(lb[1],w,h);
+mvCtx.fillText(lb[0],q.x+3,q.y-3);
+mvCtx.fillRect(q.x-1,q.y-1,2,2);
+});
+}
+function mvLoop(){
+if(!mvDrag) mvYaw+=0.004;
+mvDraw();
+requestAnimationFrame(mvLoop);
+}
+var __oi=openInfo;
+openInfo=function(s){
+__oi(s);
+var panel=document.getElementById('info-panel');
+var old=document.getElementById('mv-wrap');
+if(old) old.parentNode.removeChild(old);
+var wrap=document.createElement('div');
+wrap.id='mv-wrap';
+wrap.style.cssText='margin-top:10px;'+
+'border:1px solid #060;padding:4px;';
+var t=document.createElement('div');
+t.className='l-ok';
+t.textContent='--- 3D SCHEME (drag to rotate) ---';
+wrap.appendChild(t);
+mvCv=document.createElement('canvas');
+mvCv.width=260;mvCv.height=180;
+mvCv.style.cssText='width:100%;height:180px;'+
+'display:block;touch-action:none;';
+wrap.appendChild(mvCv);
+panel.appendChild(wrap);
+mvCtx=mvCv.getContext('2d');
+mvModel=modelFor(s);
+var md=false,lx=0,ly=0;
+mvCv.addEventListener('pointerdown',function(e){
+md=true;mvDrag=true;lx=e.clientX;ly=e.clientY;
+});
+mvCv.addEventListener('pointermove',function(e){
+if(!md)return;
+mvYaw+=(e.clientX-lx)*0.01;
+mvPitch+=(e.clientY-ly)*0.01;
+lx=e.clientX;ly=e.clientY;
+});
+mvCv.addEventListener('pointerup',function(){
+md=false;mvDrag=false;
+});
+if(!window.__mvLoop){
+window.__mvLoop=1;
+requestAnimationFrame(mvLoop);
+}
+};
+log('V3-H MODELS OK','ok');
+</script>
+<script>
+(function(){
+var st=document.createElement('style');
+st.innerHTML=
+'body.retro *{text-shadow:0 0 4px rgba(0,255,0,.55);}'
++'body.retro header{border-bottom:3px double #060;}'
++'body.retro .btn,body.retro .menu,'
++'body.retro .bbtn{border-style:dashed;}'
++'body.retro main::after{content:"";'
++'position:absolute;left:0;top:0;right:0;bottom:0;'
++'pointer-events:none;'
++'background:repeating-linear-gradient(0deg,'
++'rgba(0,0,0,.22) 0 1px,transparent 1px 3px);}'
++'body.retro #out{background:radial-gradient('
++'circle at 50% 40%,rgba(0,40,0,.25),'
++'transparent 70%);}'
++'body.retro .l-ok{color:#33ff33;}';
+document.head.appendChild(st);
+function setUI(m){
+if(m==='retro') document.body.classList.add('retro');
+else document.body.classList.remove('retro');
+try{ localStorage.setItem('cosmo_ui',m); }catch(e){}
+log('UI MODE: '+m,'ok');
+}
+var saved='retro';
+try{ saved=localStorage.getItem('cosmo_ui')||'retro';
+}catch(e){}
+setUI(saved);
+var __run6=run;
+run=function(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+if(p[0]==='ui'&&(p[1]==='retro'||p[1]==='clean')){
+setUI(p[1]); return;
+}
+if(p[0]==='help'){
+__run6(raw);
+log(' ui retro|clean - interface style');
+return;
+}
+__run6(raw);
+};
+var mp=document.getElementById('menu-panel');
+['retro','clean'].forEach(function(m){
+var b=document.createElement('button');
+b.className='mi';
+b.textContent='UI: '+m.toUpperCase();
+b.addEventListener('click',function(e){
+e.stopPropagation();
+mp.classList.remove('show');
+setUI(m);
+});
+mp.appendChild(b);
+});
+var bc=document.getElementById('b-chat');
+if(bc) bc.parentNode.removeChild(bc);
+var vc=document.getElementById('v-chat');
+if(vc) vc.parentNode.removeChild(vc);
+log('V3-I RETRO UI OK','ok');
+})();
+</script>
+<script>
+var ALIAS={
+'25544':'мкс iss станция',
+'48274':'тяньгун станция',
+'20580':'хаббл телескоп',
+'JWST':'вебб джеймс вебб телескоп',
+'VGR1':'вояджер воаджер voyager',
+'VGR2':'вояджер воаджер voyager',
+'STARLINK':'старлинк',
+'GLONASS':'глонасс',
+'GALILEO':'галилео',
+'BEIDOU':'бэйдоу бейдоу',
+'PERSEVERANCE':'персеверанс марсоход',
+'CURIOSITY':'кьюриосити марсоход',
+'ZHURONG':'чжужун марсоход',
+'LUNA':'луна',
+'CHANG':'чанъэ',
+'YUTU':'юйту',
+'QUEQIAO':'цюэцяо',
+'CHANDRAYAAN':'чандраян',
+'MAVEN':'мейвен',
+'KUIPER':'кайпер',
+'IRIDIUM':'иридиум',
+'ONEWEB':'ванвеб',
+'METEOR':'метеор',
+'SENTINEL':'сентинель',
+'LANDSAT':'лендсат',
+'GOES':'гоус',
+'HIMAWARI':'химавари',
+'METEOSAT':'метеосат',
+'INTELSAT':'интелсат'
+};
+var TRMAP={'а':'a','б':'b','в':'v','г':'g','д':'d',
+'е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'i',
+'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p',
+'р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h',
+'ц':'c','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y',
+'ь':'','э':'e','ю':'yu','я':'ya'};
+function translit(s){
+var r='';
+for(var i=0;i<s.length;i++){
+r+=(TRMAP[s[i]]||s[i]);
+}
+return r;
+}
+function lev(a,b){
+var m=a.length,n=b.length,i,j;
+var d=[];
+for(i=0;i<=m;i++){ d[i]=[i]; }
+for(j=0;j<=n;j++){ d[0][j]=j; }
+for(i=1;i<=m;i++){
+for(j=1;j<=n;j++){
+d[i][j]=Math.min(
+d[i-1][j]+1,d[i][j-1]+1,
+d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+}
+}
+return d[m][n];
+}
+function aliasFor(s){
+var a=ALIAS[s.id]||'';
+if(!a){
+var nu=s.name.toUpperCase();
+Object.keys(ALIAS).forEach(function(k){
+if(!a&&nu.indexOf(k)===0) a=ALIAS[k];
+});
+}
+return a;
+}
+function smartFind(q){
+q=String(q).trim().toLowerCase();
+if(!q) return null;
+var exact=null;
+DB.forEach(function(s){
+if(exact) return;
+if(s.id===q||s.name.toLowerCase()===q) exact=s;
+});
+if(exact) return exact;
+var qt=translit(q);
+var best=null,bd=99;
+DB.forEach(function(s){
+var cand=(s.name.toLowerCase()+' '+aliasFor(s))
+.split(/\s+/);
+cand.forEach(function(t){
+if(t.length<3) return;
+var d=Math.min(lev(q,t),lev(qt,t));
+if(t.indexOf(q)===0||q.indexOf(t)===0) d=0;
+var lim=(t.length>6)?2:1;
+if(d<=lim&&d<bd){ bd=d; best=s; }
+});
+});
+return best;
+}
+var __run7=run;
+run=function(raw){
+var p=raw.trim().split(/\s+/);
+var c=p[0].toLowerCase();
+if(c==='find'||c==='info'||c==='track'){
+var q=p.slice(1).join(' ');
+var s=smartFind(q);
+if(s) raw=c+' '+s.name;
+}
+__run7(raw);
+};
+log('V3-J SMART FIND OK','ok');
+</script>
+<script>
+function photoQueries(s){
+var n=s.name.toUpperCase();
+if(n.indexOf('STARLINK')===0||n.indexOf('KUIPER')===0)
+return ['starlink launch falcon 9',
+'starlink satellites in orbit'];
+if(s.body==='A')
+return ['mars surface rover','mars landscape valley'];
+if(s.body==='M')
+return ['moon surface apollo','moon from orbit'];
+if(n.indexOf('VOYAGER')===0||n.indexOf('PIONEER')===0)
+return ['voyager spacecraft','jupiter from voyager'];
+if(n.indexOf('HUBBLE')===0)
+return ['hubble space telescope','hubble deep field'];
+if(n.indexOf('JAMES')===0)
+return ['james webb telescope','webb deep field'];
+if(n.indexOf('ISS')===0||n.indexOf('TIANGONG')===0)
+return ['international space station',
+'earth from space station'];
+if(s.type==='EO'||s.type==='WX')
+return ['earth from space','satellite view earth'];
+return ['satellite in space','earth from orbit'];
+}
+function addPhotos(s,panel){
+photoQueries(s).forEach(function(q){
+fetch('https://images-api.nasa.gov/search?q='+
+encodeURIComponent(q)+'&media_type=image')
+.then(function(r){
+if(!r.ok) throw 0;
+return r.json();
+}).then(function(j){
+var it=j&&j.collection&&j.collection.items&&
+j.collection.items[0];
+if(!it||!it.links||!it.links[0]) throw 0;
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:8px;';
+var cap=document.createElement('div');
+cap.className='l-info';
+cap.textContent='PHOTO ('+q+'): ';
+wrap.appendChild(cap);
+var img=document.createElement('img');
+img.src=it.links[0].href;
+img.style.cssText='width:160px;'+
+'image-rendering:pixelated;'+
+'border:1px solid #060;display:block;';
+img.onerror=function(){
+if(wrap.parentNode)
+wrap.parentNode.removeChild(wrap);
+};
+wrap.appendChild(img);
+panel.appendChild(wrap);
+}).catch(function(){});
+});
+}
+var __oi2=openInfo;
+openInfo=function(s){
+__oi2(s);
+addPhotos(s,document.getElementById('info-panel'));
+};
+log('V3-K PHOTOS OK','ok');
+</script><script>
+function photoQueries(s){
+var n=s.name.toUpperCase();
+if(n.indexOf('STARLINK')===0||n.indexOf('KUIPER')===0)
+return ['starlink launch falcon 9',
+'starlink satellites in orbit'];
+if(s.body==='A')
+return ['mars surface rover','mars landscape valley'];
+if(s.body==='M')
+return ['moon surface apollo','moon from orbit'];
+if(n.indexOf('VOYAGER')===0||n.indexOf('PIONEER')===0)
+return ['voyager spacecraft','jupiter from voyager'];
+if(n.indexOf('HUBBLE')===0)
+return ['hubble space telescope','hubble deep field'];
+if(n.indexOf('JAMES')===0)
+return ['james webb telescope','webb deep field'];
+if(n.indexOf('ISS')===0||n.indexOf('TIANGONG')===0)
+return ['international space station',
+'earth from space station'];
+if(s.type==='EO'||s.type==='WX')
+return ['earth from space','satellite view earth'];
+return ['satellite in space','earth from orbit'];
+}
+function addPhotos(s,panel){
+photoQueries(s).forEach(function(q){
+fetch('https://images-api.nasa.gov/search?q='+
+encodeURIComponent(q)+'&media_type=image')
+.then(function(r){
+if(!r.ok) throw 0;
+return r.json();
+}).then(function(j){
+var it=j&&j.collection&&j.collection.items&&
+j.collection.items[0];
+if(!it||!it.links||!it.links[0]) throw 0;
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:8px;';
+var cap=document.createElement('div');
+cap.className='l-info';
+cap.textContent='PHOTO ('+q+'): ';
+wrap.appendChild(cap);
+var img=document.createElement('img');
+img.src=it.links[0].href;
+img.style.cssText='width:160px;'+
+'image-rendering:pixelated;'+
+'border:1px solid #060;display:block;';
+img.onerror=function(){
+if(wrap.parentNode)
+wrap.parentNode.removeChild(wrap);
+};
+wrap.appendChild(img);
+panel.appendChild(wrap);
+}).catch(function(){});
+});
+}
+var __oi2=openInfo;
+openInfo=function(s){
+__oi2(s);
+addPhotos(s,document.getElementById('info-panel'));
+};
+log('V3-K PHOTOS OK','ok');
+</script>
+<script>
+var mvSat=null;
+function rocketModel(){
+var lines=box(0,-1.2,0,0.7,1.6,0.7)
+.concat(box(0,0.1,0,0.6,0.9,0.6))
+.concat([
+L([0.3,0.55,0.3],[0,1.5,0]),
+L([-0.3,0.55,0.3],[0,1.5,0]),
+L([0.3,0.55,-0.3],[0,1.5,0]),
+L([-0.3,0.55,-0.3],[0,1.5,0]),
+L([0.35,-2.0,0.35],[0.8,-2.0,0.8]),
+L([0.8,-2.0,0.8],[0.35,-1.4,0.35]),
+L([-0.35,-2.0,-0.35],[-0.8,-2.0,-0.8]),
+L([-0.8,-2.0,-0.8],[-0.35,-1.4,-0.35])
+]);
+return {lines:lines,labels:[
+['stage 1',[0.5,-1.2,0]],
+['stage 2',[0.45,0.1,0]],
+['fairing',[0.25,1.1,0]],
+['fins',[0.8,-2.0,0.8]]]};
+}
+function rocketFor(s){
+var n=s.name.toUpperCase();
+if(n.indexOf('STARLINK')===0||n.indexOf('KUIPER')===0)
+return 'Falcon 9';
+if(n.indexOf('ONEWEB')===0) return 'Soyuz-2.1b';
+if(n.indexOf('GPS')===0) return 'Delta IV / Falcon 9';
+if(n.indexOf('GLONASS')===0) return 'Soyuz-2.1b';
+if(n.indexOf('GALILEO')===0) return 'Ariane 5 / Soyuz';
+if(n.indexOf('BEIDOU')===0||n.indexOf('TIANGONG')===0||
+n.indexOf('CHANG')===0||n.indexOf('FENGYUN')===0)
+return 'Long March';
+if(n.indexOf('GOES')===0||n.indexOf('MAVEN')===0||
+n.indexOf('MRO')===0||
+n.indexOf('PERSEVERANCE')===0||
+n.indexOf('CURIOSITY')===0) return 'Atlas V';
+if(n.indexOf('HIMAWARI')===0||n.indexOf('ALOS')===0||
+n.indexOf('GOSAT')===0) return 'H-IIA';
+if(n.indexOf('METEOSAT')===0||n.indexOf('JAMES')===0)
+return 'Ariane 5';
+if(n.indexOf('HUBBLE')===0) return 'Space Shuttle';
+if(n.indexOf('ISS')===0) return 'Proton / Soyuz / Shuttle';
+if(n.indexOf('VOYAGER')===0) return 'Titan IIIE-Centaur';
+if(n.indexOf('CHANDRAYAAN')===0) return 'GSLV Mk III';
+if(s.body==='M') return 'Long March / Chandrayaan';
+return 'orbital class rocket';
+}
+var __oi3=openInfo;
+openInfo=function(s){
+__oi3(s);
+var wrap=document.getElementById('mv-wrap');
+if(!wrap) return;
+mvSat=s;
+var bar=document.createElement('div');
+bar.style.cssText='margin-top:4px;';
+var b1=document.createElement('button');
+b1.textContent='[SAT]';
+var b2=document.createElement('button');
+b2.textContent='[ROCKET]';
+var mvLabel=document.createElement('div');
+mvLabel.className='l-info';
+mvLabel.textContent='SCHEME: '+s.name;
+[b1,b2].forEach(function(b){
+b.style.cssText='background:transparent;'+
+'border:1px solid #060;color:#0f0;'+
+'font-family:inherit;margin-right:6px;'+
+'padding:2px 8px;cursor:pointer;';
+});
+b1.onclick=function(){
+mvModel=modelFor(mvSat);
+mvLabel.textContent='SCHEME: '+mvSat.name;
+};
+b2.onclick=function(){
+mvModel=rocketModel();
+mvLabel.textContent='LAUNCH VEHICLE: '+
+rocketFor(mvSat);
+};
+bar.appendChild(b1);
+bar.appendChild(b2);
+wrap.insertBefore(bar,wrap.children[1]);
+wrap.appendChild(mvLabel);
+};
+log('V3-L ROCKETS OK','ok');
+</script>
+<script>
+function uiSet(m){
+if(m==='retro') document.body.classList.add('retro');
+else document.body.classList.remove('retro');
+try{ localStorage.setItem('cosmo_ui',m); }catch(e){}
+log('UI MODE: '+m,'ok');
+}
+function wikiTerm(q){
+log('WIKI SEARCH: '+q,'info');
+fetch(WIKI_URL+encodeURIComponent(q))
+.then(function(r){ if(!r.ok) throw 0; return r.json(); })
+.then(function(j){
+var p=j&&j.query&&j.query.pages;
+if(!p) throw 0;
+var pg=p[Object.keys(p)[0]];
+log('WIKI: '+pg.title,'ok');
+var ex=(pg.extract||'').slice(0,700);
+if(ex) log(ex,'info');
+}).catch(function(){
+log('WIKI: unavailable','err');
+});
+}
+function smartSafe(q){
+if(typeof smartFind==='function'){
+var s=smartFind(q);
+if(s) return s;
+}
+var f=null;
+DB.forEach(function(x){
+if(!f&&x.name.toLowerCase().indexOf(q)!==-1) f=x;
+});
+return f;
+}
+function run(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+var c=p[0], arg=p.slice(1).join(' ');
+log('> '+raw,'cmd');
+if(c==='help'){
+log('COMMANDS:','ok');
+log(' list | scan | count');
+log(' find | info | track <name/id>');
+log(' trackall | tracktop | tracklast | untrack');
+log(' filter <sta|sci|eo|wx|com|nav|deep|surf|off>');
+log(' body <earth|moon|mars>');
+log(' near [lat lon] | stream on|off');
+log(' ai <q> | <q> wiki | wiki <q>');
+log(' aisel <wiki|net|local|auto>');
+log(' ui <retro|clean> | clear | about');
+log(' globe | term');
+}
+else if(c==='about') log(ABOUT_TEXT,'ok');
+else if(c==='count') log('TOTAL: '+DB.length,'ok');
+else if(c==='list'||c==='scan'){
+var vl=visibleList();
+log('--- VISIBLE: '+vl.length+' ---','info');
+vl.slice(0,80).forEach(function(s){
+log('['+s.id+'] '+s.name,'data');
+});
+if(vl.length>80) log('...+'+(vl.length-80),'info');
+}
+else if(c==='filter'){
+var map={sta:'STA',sci:'SCI',eo:'EO',wx:'WX',
+com:'COM',nav:'NAV',deep:'DEEP',surf:'SURF'};
+if(!arg||arg==='off'){ state.filter=null;
+log('FILTER OFF','ok'); }
+else if(map[arg]){ state.filter=map[arg];
+log('FILTER: '+map[arg],'ok'); }
+else log('Unknown filter','err');
+}
+else if(c==='body'){
+if(arg==='earth') setBody('E');
+else if(arg==='moon') setBody('M');
+else if(arg==='mars') setBody('A');
+else log('body earth|moon|mars','err');
+}
+else if(c==='find'||c==='info'){
+var s=arg?smartSafe(arg):null;
+if(s){ lastTap=s; satInfo(s); }
+else log('NOT FOUND: '+arg,'err');
+}
+else if(c==='track'){
+var t=arg?smartSafe(arg):null;
+if(t){ state.track=t; state.mode=null;
+log('TRACKING ONE: '+t.name,'ok'); }
+else log('Unknown','err');
+}
+else if(c==='trackall'){ state.track=null;
+state.mode='all'; log('TRACKING ALL','ok'); }
+else if(c==='tracktop'){ state.track=null;
+state.mode='top'; log('TRACKING TOP-5','ok'); }
+else if(c==='tracklast'){
+if(lastTap){ state.track=lastTap; state.mode=null;
+log('TRACKING ONE: '+lastTap.name,'ok'); }
+else log('Tap a sat first','err');
+}
+else if(c==='untrack'){ state.track=null;
+state.mode=null; log('Tracking stopped','info'); }
+else if(c==='stream'){
+if(arg==='on'){ state.stream=true;
+log('Stream ON','ok'); }
+else if(arg==='off'){ state.stream=false;
+log('Stream OFF','info'); }
+else log('stream on|off','err');
+}
+else if(c==='near'){
+if(p.length>=3){
+showNear(parseFloat(p[1]),parseFloat(p[2]));
+}else{
+log('GEO: requesting location...','info');
+askGeo(showNear);
+}
+}
+else if(c==='aisel'){
+if(arg==='wiki'||arg==='net'||
+arg==='local'||arg==='auto'){
+AI_MODE=arg; log('AI MODE: '+arg,'ok');
+}else log('aisel wiki|net|local|auto','err');
+}
+else if(c==='ui'){
+if(arg==='retro'||arg==='clean') uiSet(arg);
+else log('ui retro|clean','err');
+}
+else if(c==='ai'){ aiAsk(arg||'расскажи о себе'); }
+else if(c==='wiki'){
+if(arg) wikiTerm(arg);
+else log('wiki <query>','err');
+}
+else if(p.length>1&&p[p.length-1]==='wiki'){
+wikiTerm(p.slice(0,p.length-1).join(' '));
+}
+else if(c==='clear'){ out.innerHTML=''; }
+else if(c==='globe'){ switchTab('globe'); }
+else if(c==='term'){ switchTab('term'); }
+else if(c){ log('Unknown: '+c,'err'); }
+}
+function tagGlobe(e){
+var rect=gCv.getBoundingClientRect();
+var x=e.clientX-rect.left, y=e.clientY-rect.top;
+var best=null,bd=1e9;
+DB.forEach(function(s){
+if(s.body!==curBody) return;
+if(!s._front||s._x===undefined) return;
+var d=Math.sqrt((s._x-x)*(s._x-x)+
+(s._y-y)*(s._y-y));
+if(d<bd){ bd=d; best=s; }
+});
+if(best&&bd<30){
+lastTap=best;
+satInfo(best);
+document.getElementById('tag-name')
+.textContent=best.name;
+var tg=document.getElementById('tag');
+tg.style.display='block';
+window.__tagUntil=Date.now()+12000;
+}
+}
+(function(){
+function follow(){
+var tg=document.getElementById('tag');
+if(tg.style.display==='block'){
+if(window.__tagUntil&&
+Date.now()>window.__tagUntil){
+tg.style.display='none';
+}else if(lastTap&&lastTap._x!==undefined){
+tg.style.left=(lastTap._x+12)+'px';
+tg.style.top=(lastTap._y-10)+'px';
+}
+}
+requestAnimationFrame(follow);
+}
+requestAnimationFrame(follow);
+})();
+log('V3-M1 CORE RUN OK','ok');
+</script>
+<script>
+function loadPhotosInto(s,container){
+if(typeof photoQueries!=='function') return;
+photoQueries(s).forEach(function(q){
+fetch('https://images-api.nasa.gov/search?q='+
+encodeURIComponent(q)+'&media_type=image')
+.then(function(r){
+if(!r.ok) throw 0; return r.json();
+}).then(function(j){
+var it=j&&j.collection&&j.collection.items&&
+j.collection.items[0];
+if(!it||!it.links||!it.links[0]) throw 0;
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:8px;';
+var cap=document.createElement('div');
+cap.className='l-info';
+cap.textContent='PHOTO ('+q+'): ';
+wrap.appendChild(cap);
+var img=document.createElement('img');
+img.src=it.links[0].href;
+img.style.cssText='width:160px;'+
+'image-rendering:pixelated;'+
+'border:1px solid #060;display:block;';
+img.onerror=function(){
+if(wrap.parentNode)
+wrap.parentNode.removeChild(wrap);
+};
+wrap.appendChild(img);
+container.appendChild(wrap);
+}).catch(function(){});
+});
+}
+function openInfo(s){
+lastTap=s;
+var panel=document.getElementById('info-panel');
+var body=document.getElementById('info-body');
+body.innerHTML='';
+function add(t,c){
+var d=document.createElement('div');
+d.className='l-'+(c||'info');
+d.textContent=t;
+body.appendChild(d);
+}
+add(s.name+' ['+s.id+'] type:'+s.type+
+' body:'+s.body,'ok');
+var f=s.fact||F[s.id]||null;
+if(f){
+var q=f.split('|');
+add('LAUNCH: '+q[0]);
+add('OPERATOR: '+q[1]);
+add('MASS: '+q[2]);
+add('SIZE: '+q[3]);
+add('MISSION: '+q[4]);
+}else add('Reference: '+genFact(s),'info');
+if(!s.sp&&!s.surf){
+var op=orbitParams(s);
+var p=getPos(s,new Date());
+add('APO: '+op.apo.toFixed(0)+' km | PERI: '+
+op.peri.toFixed(0)+' km | PERIOD: '+
+op.period.toFixed(0)+' min | INC: '+
+op.inc.toFixed(1)+' deg','info');
+if(p&&isFinite(p.lat)){
+add('VEL: '+satSpeed(s,p.alt).toFixed(2)+
+' km/s | LAT '+p.lat.toFixed(2)+
+' LON '+p.lon.toFixed(2),'info');
+}
+}
+add('--- WIKIPEDIA (scroll) ---','info');
+var w=document.createElement('div');
+w.className='l-info';
+w.style.whiteSpace='pre-wrap';
+w.textContent='loading...';
+body.appendChild(w);
+fetchWiki(s.name,w);
+if(typeof modelFor==='function'){
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:10px;'+
+'border:1px solid #060;padding:4px;';
+var t=document.createElement('div');
+t.className='l-ok';
+t.textContent='--- 3D SCHEME (drag) ---';
+wrap.appendChild(t);
+var bar=document.createElement('div');
+bar.style.cssText='margin:4px 0;';
+var b1=document.createElement('button');
+b1.textContent='[SAT]';
+var b2=document.createElement('button');
+b2.textContent='[ROCKET]';
+var lab=document.createElement('div');
+lab.className='l-info';
+lab.textContent='SCHEME: '+s.name;
+[b1,b2].forEach(function(b){
+b.style.cssText='background:transparent;'+
+'border:1px solid #060;color:#0f0;'+
+'font-family:inherit;margin-right:6px;'+
+'padding:2px 8px;cursor:pointer;';
+});
+b1.onclick=function(){
+mvModel=modelFor(s);
+lab.textContent='SCHEME: '+s.name;
+};
+b2.onclick=function(){
+if(typeof rocketModel==='function'){
+mvModel=rocketModel();
+lab.textContent='LAUNCH VEHICLE: '+
+((typeof rocketFor==='function')?
+rocketFor(s):'rocket');
+}
+};
+bar.appendChild(b1);
+bar.appendChild(b2);
+wrap.appendChild(bar);
+var cv=document.createElement('canvas');
+cv.width=260; cv.height=180;
+cv.style.cssText='width:100%;height:180px;'+
+'display:block;touch-action:none;';
+wrap.appendChild(cv);
+wrap.appendChild(lab);
+body.appendChild(wrap);
+mvCv=cv;
+mvCtx=cv.getContext('2d');
+mvModel=modelFor(s);
+var md=false,lx=0,ly=0;
+cv.addEventListener('pointerdown',function(e){
+md=true; mvDrag=true; lx=e.clientX; ly=e.clientY;
+});
+cv.addEventListener('pointermove',function(e){
+if(!md) return;
+mvYaw+=(e.clientX-lx)*0.01;
+mvPitch+=(e.clientY-ly)*0.01;
+lx=e.clientX; ly=e.clientY;
+});
+cv.addEventListener('pointerup',function(){
+md=false; mvDrag=false;
+});
+if(!window.__mvLoop){
+window.__mvLoop=1;
+requestAnimationFrame(mvLoop);
+}
+}
+loadPhotosInto(s,body);
+panel.classList.add('show');
+}
+log('V3-M2 CARD OK','ok');
+</script>
+<script>
+function rocketModel(){
+var lines=[],i;
+function ring(r,y,n){
+var pts=[],k;
+for(k=0;k<n;k++){
+var a=k/n*6.2832;
+pts.push([r*Math.cos(a),y,r*Math.sin(a)]);
+}
+return pts;
+}
+function prism(r,y0,y1,n){
+var p0=ring(r,y0,n),p1=ring(r,y1,n),out=[],k;
+for(k=0;k<n;k++){
+var k2=(k+1)%n;
+out.push(L(p0[k],p0[k2]));
+out.push(L(p1[k],p1[k2]));
+out.push(L(p0[k],p1[k]));
+}
+return out;
+}
+function cone(r,y0,y1,n){
+var p0=ring(r,y0,n),ap=[0,y1,0],out=[],k;
+for(k=0;k<n;k++){
+var k2=(k+1)%n;
+out.push(L(p0[k],p0[k2]));
+out.push(L(p0[k],ap));
+}
+return out;
+}
+lines=lines.concat(prism(0.42,-2.0,-0.2,8));
+lines=lines.concat(prism(0.34,-0.2,0.9,8));
+lines=lines.concat(cone(0.34,0.9,1.8,8));
+lines=lines.concat(cone(0.30,-2.0,-2.5,8));
+for(i=0;i<4;i++){
+var fa=i/4*6.2832;
+var fx=Math.cos(fa),fz=Math.sin(fa);
+lines.push(L([fx*0.42,-2.0,fz*0.42],
+[fx*0.95,-2.4,fz*0.95]));
+lines.push(L([fx*0.95,-2.4,fz*0.95],
+[fx*0.42,-1.2,fz*0.42]));
+}
+return {lines:lines,labels:[
+['stage 1',[0.5,-1.1,0]],
+['stage 2',[0.45,0.3,0]],
+['fairing',[0.3,1.2,0]],
+['engine',[0.35,-2.3,0]],
+['fins',[0.95,-2.4,0]]]};
+}
+function loadPhotosInto(s,container){
+if(typeof photoQueries!=='function') return;
+photoQueries(s).forEach(function(q){
+fetch('https://images-api.nasa.gov/search?q='+
+encodeURIComponent(q)+'&media_type=image')
+.then(function(r){
+if(!r.ok) throw 0; return r.json();
+}).then(function(j){
+var it=j&&j.collection&&j.collection.items&&
+j.collection.items[0];
+if(!it||!it.links||!it.links[0]) throw 0;
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:10px;';
+var cap=document.createElement('div');
+cap.className='l-info';
+cap.textContent='PHOTO ('+q+'): ';
+wrap.appendChild(cap);
+var img=document.createElement('img');
+img.src=it.links[0].href;
+img.style.cssText='width:100%;max-width:340px;'+
+'border:1px solid #060;display:block;'+
+'background:#000;';
+img.onerror=function(){
+if(wrap.parentNode)
+wrap.parentNode.removeChild(wrap);
+};
+wrap.appendChild(img);
+container.appendChild(wrap);
+}).catch(function(){});
+});
+}
+(function(){
+if(window.__v3n_run) return;
+window.__v3n_run=1;
+var base=run;
+run=function(raw){
+var p=raw.trim().toLowerCase().split(/\s+/);
+if((p[0]==='find'||p[0]==='info')&&p.length>1){
+var q=p.slice(1).join(' ');
+var s=(typeof smartSafe==='function')?
+smartSafe(q):null;
+if(s){
+base('info '+s.name);
+openInfo(s);
+return;
+}
+}
+base(raw);
+};
+})();
+log('V3-N QUALITY OK','ok');
+</script>
+<script>
+(function(){
+var st=document.createElement('style');
+st.innerHTML=
+'@keyframes rflick{0%,100%{opacity:1}'
++'88%{opacity:.97}92%{opacity:.99}96%{opacity:.96}}'
++'body.retro main{animation:rflick 4s infinite;}'
++'body.retro main::before{content:"";'
++'position:absolute;left:0;top:0;right:0;bottom:0;'
++'pointer-events:none;z-index:40;'
++'background:radial-gradient(ellipse at center,'
++'transparent 55%,rgba(0,0,0,.55) 100%);}'
++'body.retro *{text-shadow:'
++'0 0 6px rgba(51,255,51,.8),'
++'0 0 12px rgba(0,255,0,.35);}'
++'body.retro .btn,body.retro .menu,'
++'body.retro .bbtn,body.retro .mi{'
++'border-width:2px;border-style:double;}'
++'body.retro #prompt::after{content:"\\2588";'
++'animation:rblink 1s steps(1) infinite;}'
++'@keyframes rblink{50%{opacity:0}}'
++'body.retro canvas{'
++'filter:drop-shadow(0 0 4px rgba(0,255,0,.5));}'
++'body.retro #out::-webkit-scrollbar-thumb{'
++'background:#0f0;}';
+document.head.appendChild(st);
+})();
+function showFiltered(img){
+img.style.cssText='width:100%;max-width:340px;'+
+'border:1px solid #060;display:block;'+
+'filter:grayscale(1) sepia(1) hue-rotate(60deg)'+
+' saturate(4) contrast(1.3) brightness(.85);';
+return img;
+}
+function retroProcess(im,wrap){
+var W=120;
+var H=Math.max(20,Math.round(
+im.naturalHeight/im.naturalWidth*W));
+if(H>90) H=90;
+var cv=document.createElement('canvas');
+cv.width=W; cv.height=H;
+var cx=cv.getContext('2d');
+cx.drawImage(im,0,0,W,H);
+var d;
+try{ d=cx.getImageData(0,0,W,H); }
+catch(e){ wrap.appendChild(showFiltered(im)); return; }
+var px=d.data,i,x,y;
+for(i=0;i<px.length;i+=4){
+var lum=(px[i]*0.3+px[i+1]*0.6+px[i+2]*0.1)/255;
+var lv=Math.round(lum*3)/3;
+px[i]=lv*40;
+px[i+1]=lv*255;
+px[i+2]=lv*60;
+px[i+3]=255;
+}
+for(y=1;y<H;y+=2){
+for(x=0;x<W;x++){
+var k=(y*W+x)*4;
+px[k]*=0.55; px[k+1]*=0.55; px[k+2]*=0.55;
+}
+}
+cx.putImageData(d,0,0);
+cv.style.cssText='width:100%;max-width:340px;'+
+'border:1px solid #060;display:block;'+
+'image-rendering:pixelated;background:#000;';
+wrap.appendChild(cv);
+}
+function loadPhotosInto(s,container){
+if(typeof photoQueries!=='function') return;
+photoQueries(s).forEach(function(q){
+fetch('https://images-api.nasa.gov/search?q='+
+encodeURIComponent(q)+'&media_type=image')
+.then(function(r){
+if(!r.ok) throw 0; return r.json();
+}).then(function(j){
+var it=j&&j.collection&&j.collection.items&&
+j.collection.items[0];
+if(!it||!it.links||!it.links[0]) throw 0;
+var url=it.links[0].href;
+url=url.replace('~medium','~small');
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:10px;';
+var cap=document.createElement('div');
+cap.className='l-info';
+cap.textContent='CAM FEED ('+q+'): ';
+wrap.appendChild(cap);
+container.appendChild(wrap);
+var im=new Image();
+im.crossOrigin='anonymous';
+im.onload=function(){
+try{ retroProcess(im,wrap); }
+catch(e){ wrap.appendChild(showFiltered(im)); }
+};
+im.onerror=function(){
+var im2=new Image();
+im2.onload=function(){
+wrap.appendChild(showFiltered(im2));
+};
+im2.src=url;
+};
+im.src=url;
+}).catch(function(){});
+});
+}
+log('V3-O CRT PHOTOS OK','ok');
+</script>
+<script>
+function rng(x){
+return function(){
+x=(x*1103515245+12345)&0x7fffffff;
+return x/0x7fffffff;
+};
+}
+function limbArc(c,cx,cy,r,col){
+c.strokeStyle=col;
+c.beginPath();
+c.arc(cx,cy,r,Math.PI*1.15,Math.PI*1.85);
+c.stroke();
+}
+function ground(c,R,col,y){
+c.strokeStyle=col;
+c.beginPath();
+c.moveTo(0,y);
+for(var x=0;x<=320;x+=16){ c.lineTo(x,y-R()*10); }
+c.stroke();
+for(var k=0;k<8;k++){
+var rx=R()*310, ry=y+6+R()*(170-y);
+c.strokeRect(rx,ry,2+R()*5,2);
+}
+}
+function drawRover(c,x,y){
+c.strokeStyle='#0f0';
+c.beginPath();
+c.strokeRect(x-18,y-10,36,10);
+var w=[-12,0,12];
+for(var i=0;i<3;i++){
+c.moveTo(x+w[i]+4,y+4);
+c.arc(x+w[i],y+4,4,0,6.283);
+}
+c.moveTo(x+10,y-10); c.lineTo(x+10,y-20);
+c.lineTo(x+16,y-20);
+c.stroke();
+}
+function drawDish(c,x,y){
+c.strokeStyle='#0f0';
+c.beginPath();
+c.arc(x,y,10,Math.PI*0.9,Math.PI*2.1);
+c.moveTo(x,y+2); c.lineTo(x,y+14);
+c.moveTo(x-14,y+14); c.lineTo(x+14,y+14);
+c.stroke();
+}
+function drawStation(c,x,y){
+c.strokeStyle='#0f0';
+c.beginPath();
+c.moveTo(x-40,y); c.lineTo(x+40,y);
+c.strokeRect(x-10,y-5,20,10);
+c.strokeRect(x-38,y-3,14,6);
+c.strokeRect(x+24,y-3,14,6);
+c.stroke();
+}
+function galaxy(c,x,y){
+c.fillStyle='rgba(120,255,120,.8)';
+for(var a=0;a<12.5;a+=0.18){
+var r=2+a*4;
+c.fillRect(x+Math.cos(a)*r,y+Math.sin(a)*r*0.6,1,1);
+}
+}
+function clouds(c,R){
+c.strokeStyle='rgba(150,255,150,.5)';
+for(var k=0;k<5;k++){
+var cy=115+R()*50, cx=R()*320;
+c.beginPath();
+c.arc(cx,cy,10+R()*20,Math.PI,0);
+c.stroke();
+}
+}
+function beams(c,R){
+for(var k=0;k<4;k++){
+var bx=40+R()*240;
+c.strokeStyle='rgba(0,255,255,.6)';
+c.beginPath(); c.moveTo(160,40); c.lineTo(bx,150);
+c.stroke();
+c.fillStyle='#0ff'; c.fillRect(bx-1,149,3,3);
+}
+}
+function camScene(s){
+var W=320,H=180,i,k;
+var cv=document.createElement('canvas');
+cv.width=W; cv.height=H;
+var c=cv.getContext('2d');
+var seed=0;
+for(i=0;i<s.id.length;i++){
+seed=(seed*31+s.id.charCodeAt(i))%99991;
+}
+var R=rng(seed+7);
+c.fillStyle='#000'; c.fillRect(0,0,W,H);
+c.fillStyle='rgba(120,255,120,.7)';
+for(i=0;i<70;i++){
+c.globalAlpha=0.2+R()*0.8;
+c.fillRect(R()*W,R()*H*0.7,1,1);
+}
+c.globalAlpha=1;
+var n=s.name.toUpperCase();
+if(s.body==='A'){
+if(s.surf){ ground(c,R,'#ff8844',130); drawRover(c,160,118); }
+else { limbArc(c,160,430,300,'#ff8844');
+c.fillStyle='#ff8844'; c.fillRect(250,60,3,3); }
+}else if(s.body==='M'){
+if(s.surf){
+ground(c,R,'#aaffaa',130);
+c.strokeStyle='#aaffaa';
+c.beginPath(); c.arc(90,150,10,0,6.283);
+c.arc(220,160,6,0,6.283); c.stroke();
+}else limbArc(c,160,430,300,'#aaffaa');
+}else if(n.indexOf('STARLINK')===0||
+n.indexOf('KUIPER')===0||n.indexOf('ONEWEB')===0){
+limbArc(c,160,400,280,'#0f0');
+c.fillStyle='#0ff';
+for(k=0;k<7;k++){
+var an=Math.PI*1.25+k*0.08;
+c.fillRect(160+Math.cos(an)*285,
+400+Math.sin(an)*285,2,2);
+}
+}else if(s.type==='DEEP'||n.indexOf('VOYAGER')===0||
+n.indexOf('PIONEER')===0){
+c.fillStyle='#fff'; c.fillRect(280,30,2,2);
+c.strokeStyle='rgba(255,255,255,.4)';
+c.beginPath(); c.moveTo(281,31); c.lineTo(260,50);
+c.stroke();
+drawDish(c,120,90);
+}else if(s.type==='SCI'||n.indexOf('HUBBLE')===0||
+n.indexOf('JAMES')===0){
+galaxy(c,210,80);
+c.strokeStyle='#0f0'; c.strokeRect(90,80,40,16);
+c.beginPath(); c.moveTo(130,88); c.lineTo(150,88);
+c.stroke();
+}else if(n.indexOf('ISS')===0||n.indexOf('TIANGONG')===0){
+limbArc(c,160,420,300,'#0f0');
+clouds(c,R);
+drawStation(c,160,70);
+}else if(s.type==='EO'||s.type==='WX'){
+limbArc(c,160,420,300,'#0f0');
+clouds(c,R);
+c.strokeStyle='rgba(0,255,0,.35)';
+c.beginPath(); c.arc(160,420,290,Math.PI*1.2,Math.PI*1.8);
+c.stroke();
+}else if(s.type==='NAV'||s.type==='COM'){
+limbArc(c,160,420,300,'#0f0');
+beams(c,R);
+c.strokeStyle='#0f0'; c.strokeRect(150,50,20,10);
+}else{
+limbArc(c,160,420,300,'#0f0');
+}
+c.fillStyle='rgba(0,0,0,.35)';
+for(i=0;i<H;i+=2) c.fillRect(0,i,W,1);
+c.fillStyle='rgba(120,255,120,.08)';
+for(i=0;i<150;i++) c.fillRect(R()*W,R()*H,1,1);
+c.fillStyle='#0f0';
+c.font='10px monospace';
+c.fillText('CAM FEED // '+s.name,6,12);
+c.fillText(new Date().toISOString().slice(0,19)+'Z',W-160,12);
+c.strokeStyle='#060';
+c.strokeRect(1,1,W-2,H-2);
+return cv;
+}
+function loadPhotosInto(s,container){
+var wrap=document.createElement('div');
+wrap.style.cssText='margin-top:10px;';
+var cap=document.createElement('div');
+cap.className='l-info';
+cap.textContent='CAM FEED (procedural): ';
+wrap.appendChild(cap);
+var cv=camScene(s);
+cv.style.cssText='width:100%;max-width:340px;'+
+'display:block;border:1px solid #060;'+
+'image-rendering:pixelated;background:#000;';
+wrap.appendChild(cv);
+container.appendChild(wrap);
+}
+log('V3-P PROCEDURAL CAM OK','ok');
+</script>
+</body>
+</html>
